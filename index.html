@@ -204,6 +204,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#1a1a2e;direction
     <div class="nav-tab" data-tab="products">المنتجات</div>
     <div class="nav-tab" data-tab="ratings">التقييمات</div>
     <div class="nav-tab" data-tab="zone">النطاق</div>
+    <div class="nav-tab" data-tab="settings">الإعدادات</div>
   </div>
 
   <!-- ORDERS -->
@@ -262,6 +263,53 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#1a1a2e;direction
         </div>
         <div id="ratings-list"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="panel-settings" style="display:none">
+    <div style="padding:14px 12px;display:flex;flex-direction:column;gap:12px">
+      <div class="income-card">
+        <div class="income-title">⚙️ إعدادات التوصيل</div>
+        <label class="f-label">سعر التوصيل (ريال)</label>
+        <input class="f-input" id="set-delivery-fee" type="number" min="0" placeholder="10">
+        <label class="f-label">حد الطلب للتوصيل المجاني (ريال) — 0 = لا يوجد مجاني</label>
+        <input class="f-input" id="set-free-min" type="number" min="0" placeholder="40">
+        <label class="f-label">نوع التوصيل</label>
+        <select class="f-input" id="set-delivery-type" style="appearance:none">
+          <option value="both">توصيل واستلام</option>
+          <option value="delivery">توصيل فقط</option>
+          <option value="pickup">استلام فقط</option>
+        </select>
+      </div>
+      <div class="income-card">
+        <div class="income-title">💳 وسائل الدفع المتاحة</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#0f172a;border-radius:10px">
+            <span style="font-size:14px">💵 كاش</span>
+            <div style="display:flex;gap:8px">
+              <label style="font-size:12px;color:#aaa;display:flex;align-items:center;gap:4px"><input type="checkbox" id="pay-cash" style="accent-color:#C9A84C"> تفعيل</label>
+            </div>
+          </div>
+          <div id="cash-options" style="padding:10px;background:#0f172a;border-radius:10px;display:none">
+            <div style="font-size:12px;color:#aaa;margin-bottom:8px">نوع الكاش:</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input type="radio" name="cash-type" value="cash" style="accent-color:#C9A84C"> كاش فقط</label>
+              <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input type="radio" name="cash-type" value="network" style="accent-color:#C9A84C"> شبكة فقط</label>
+              <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input type="radio" name="cash-type" value="both" style="accent-color:#C9A84C" checked> كاش وشبكة</label>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#0f172a;border-radius:10px">
+            <span style="font-size:14px">💳 مدى</span>
+            <label style="font-size:12px;color:#aaa;display:flex;align-items:center;gap:4px"><input type="checkbox" id="pay-mada" style="accent-color:#C9A84C"> تفعيل</label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#0f172a;border-radius:10px">
+            <span style="font-size:14px">🍎 Apple Pay</span>
+            <label style="font-size:12px;color:#aaa;display:flex;align-items:center;gap:4px"><input type="checkbox" id="pay-apple" style="accent-color:#C9A84C"> تفعيل</label>
+          </div>
+        </div>
+      </div>
+      <button class="save-btn" onclick="saveSettings()">حفظ الإعدادات</button>
     </div>
   </div>
 
@@ -480,11 +528,12 @@ function doLogout(){
 function switchTab(tab){
   activeTab=tab;
   document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.toggle('active',t.dataset.tab===tab);});
-  ['orders','income','products','ratings','zone'].forEach(function(t){
+  ['orders','income','products','ratings','zone','settings'].forEach(function(t){
     var p=document.getElementById('panel-'+t);
     if(p) p.style.display=t===tab?'block':'none';
   });
   if(tab==='zone') setTimeout(initZoneMap,200);
+  if(tab==='settings') loadSettings();
   if(tab==='income') renderIncome();
   if(tab==='ratings') renderRatings();
   if(tab==='products'){currentCatId=null;renderCatsView();}
@@ -772,13 +821,41 @@ function showAddProdView(prodId){
   var p=prodId&&cat.products?cat.products[prodId]:{};
   if(prodId&&p.images){prodImages.main=p.images.main||null;prodImages.a=p.images.a||null;prodImages.b=p.images.b||null;prodImages.c=p.images.c||null;}
   var el=document.getElementById('view-add-prod');el.style.display='block';
+  var sizes=p.sizes||[];
+  var extras=p.extras||[];
+  var sizesHtml='';
+  sizes.forEach(function(s,i){
+    sizesHtml+='<div class="size-row-form" style="display:flex;gap:6px;margin-bottom:6px">'
+      +'<input class="f-input" style="margin:0;flex:2" placeholder="الاسم (مثال: كبير)" value="'+(s.name||'')+'" data-size-name="'+i+'">'
+      +'<input class="f-input" style="margin:0;flex:1" type="number" placeholder="السعر" value="'+(s.price||'')+'" data-size-price="'+i+'">'
+      +'<select class="f-input" style="margin:0;flex:1" data-size-req="'+i+'"><option value="optional"'+(s.required?'':' selected')+'>اختياري</option><option value="required"'+(s.required?' selected':'')+'>إجباري</option></select>'
+      +'<button onclick="this.parentElement.remove()" style="background:rgba(220,38,38,.2);color:#f87171;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-family:inherit">✕</button>'
+      +'</div>';
+  });
+  var extrasHtml='';
+  extras.forEach(function(e,i){
+    extrasHtml+='<div class="extra-row-form" style="display:flex;gap:6px;margin-bottom:6px">'
+      +'<input class="f-input" style="margin:0;flex:2" placeholder="الاسم (مثال: جبن إضافي)" value="'+(e.name||'')+'" data-extra-name="'+i+'">'
+      +'<input class="f-input" style="margin:0;flex:1" type="number" placeholder="السعر" value="'+(e.price||0)+'" data-extra-price="'+i+'">'
+      +'<select class="f-input" style="margin:0;flex:1" data-extra-req="'+i+'"><option value="optional"'+(e.required?'':' selected')+'>اختياري</option><option value="required"'+(e.required?' selected':'')+'>إجباري</option></select>'
+      +'<button onclick="this.parentElement.remove()" style="background:rgba(220,38,38,.2);color:#f87171;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-family:inherit">✕</button>'
+      +'</div>';
+  });
   el.innerHTML='<div class="prod-wrap"><div class="prod-header"><button class="prod-back" id="back-from-prod-form">← رجوع</button>'
     +'<span class="prod-title">'+(prodId?'تعديل منتج':'إضافة منتج')+'</span></div>'
     +'<div class="form-card">'
     +'<label class="f-label">اسم المنتج *</label><input class="f-input" id="prod-name-inp" value="'+(p.name||'')+'" placeholder="اسم المنتج">'
     +'<label class="f-label">الوصف (اختياري)</label><textarea class="f-textarea" id="prod-desc-inp">'+(p.desc||'')+'</textarea>'
-    +'<label class="f-label">السعر (ريال)</label><input class="f-input" id="prod-price-inp" type="number" value="'+(p.price!=null?p.price:'')+'" placeholder="0">'
+    +'<label class="f-label">السعر الأساسي (ريال) — اتركه فارغاً إذا استخدمت الأحجام</label><input class="f-input" id="prod-price-inp" type="number" value="'+(p.price!=null?p.price:'')+'" placeholder="0">'
     +'<label class="f-label">المخزون (فارغ = غير محدود)</label><input class="f-input" id="prod-stock-inp" type="number" value="'+(p.stock!=null?p.stock:'')+'" placeholder="غير محدود">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;margin-bottom:8px">'
+    +'<label class="f-label" style="margin:0">الأحجام (اختياري)</label>'
+    +'<button id="add-size-btn" style="background:#C9A84C;color:#1A0A00;border:none;border-radius:8px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">+ حجم</button></div>'
+    +'<div id="sizes-container">'+sizesHtml+'</div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;margin-bottom:8px">'
+    +'<label class="f-label" style="margin:0">إضافات (اختياري)</label>'
+    +'<button id="add-extra-btn" style="background:#C9A84C;color:#1A0A00;border:none;border-radius:8px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">+ إضافة</button></div>'
+    +'<div id="extras-container">'+extrasHtml+'</div>'
     +'<label class="f-label">الصور (كلها اختيارية)</label>'
     +'<div class="img-grid">'+buildImgBox('main','الصورة الأساسية')+buildImgBox('a','صورة 2')+buildImgBox('b','صورة 3')+buildImgBox('c','صورة 4')+'</div>'
     +'<button class="save-btn" id="save-prod-btn">حفظ المنتج</button>'
@@ -818,7 +895,31 @@ function saveProd(){
   if(!name){alert('أدخل اسم المنتج');return;}
   var stock=document.getElementById('prod-stock-inp').value.trim();
   var price=document.getElementById('prod-price-inp').value.trim();
-  var prod={name:name,desc:document.getElementById('prod-desc-inp').value.trim()||null,price:price?parseFloat(price):null,stock:stock!==''?parseInt(stock):null,images:{main:prodImages.main||null,a:prodImages.a||null,b:prodImages.b||null,c:prodImages.c||null}};
+  // Collect sizes
+  var sizes=[];
+  document.querySelectorAll('.size-row-form').forEach(function(row){
+    var n=row.querySelector('[data-size-name]');
+    var p=row.querySelector('[data-size-price]');
+    var r=row.querySelector('[data-size-req]');
+    if(n&&n.value.trim()) sizes.push({name:n.value.trim(),price:parseFloat(p.value)||0,required:r&&r.value==='required'});
+  });
+  // Collect extras
+  var extras=[];
+  document.querySelectorAll('.extra-row-form').forEach(function(row){
+    var n=row.querySelector('[data-extra-name]');
+    var p=row.querySelector('[data-extra-price]');
+    var r=row.querySelector('[data-extra-req]');
+    if(n&&n.value.trim()) extras.push({name:n.value.trim(),price:parseFloat(p.value)||0,required:r&&r.value==='required'});
+  });
+  var prod={
+    name:name,
+    desc:document.getElementById('prod-desc-inp').value.trim()||null,
+    price:price?parseFloat(price):null,
+    stock:stock!==''?parseInt(stock):null,
+    sizes:sizes.length?sizes:null,
+    extras:extras.length?extras:null,
+    images:{main:prodImages.main||null,a:prodImages.a||null,b:prodImages.b||null,c:prodImages.c||null}
+  };
   var id=editingProdId||genId();
   db.ref(currentStorePath+'/categories/'+currentCatId+'/products/'+id).set(prod,function(){
     notif('تم الحفظ');editingProdId=null;prodImages={main:null,a:null,b:null,c:null};renderProdsView();
@@ -990,6 +1091,47 @@ function viewImg(src){
 }
 
 // ── EVENT DELEGATION ──
+// ── STORE SETTINGS ──
+function loadSettings(){
+  if(!db||!currentStoreId) return;
+  db.ref(currentStorePath+'/settings').once('value',function(snap){
+    var s=snap.val()||{};
+    var df=document.getElementById('set-delivery-fee');
+    var fm=document.getElementById('set-free-min');
+    var dt=document.getElementById('set-delivery-type');
+    var pc=document.getElementById('pay-cash');
+    var pm=document.getElementById('pay-mada');
+    var pa=document.getElementById('pay-apple');
+    var co=document.getElementById('cash-options');
+    if(df) df.value=s.deliveryFee!==undefined?s.deliveryFee:10;
+    if(fm) fm.value=s.freeMin!==undefined?s.freeMin:40;
+    if(dt) dt.value=s.deliveryType||'both';
+    if(pc){pc.checked=s.cash!==false;if(co) co.style.display=pc.checked?'block':'none';}
+    if(pm) pm.checked=s.mada!==false;
+    if(pa) pa.checked=s.applePay!==false;
+    if(s.cashType){
+      var radios=document.querySelectorAll('input[name="cash-type"]');
+      radios.forEach(function(r){r.checked=r.value===s.cashType;});
+    }
+  });
+}
+
+function saveSettings(){
+  if(!db||!currentStorePath) return;
+  var cashType='both';
+  document.querySelectorAll('input[name="cash-type"]').forEach(function(r){if(r.checked)cashType=r.value;});
+  var settings={
+    deliveryFee:parseFloat(document.getElementById('set-delivery-fee').value)||0,
+    freeMin:parseFloat(document.getElementById('set-free-min').value)||0,
+    deliveryType:document.getElementById('set-delivery-type').value,
+    cash:document.getElementById('pay-cash').checked,
+    cashType:cashType,
+    mada:document.getElementById('pay-mada').checked,
+    applePay:document.getElementById('pay-apple').checked
+  };
+  db.ref(currentStorePath+'/settings').set(settings,function(){notif('تم حفظ الإعدادات ✅');});
+}
+
 window.addEventListener('load',function(){
   // show-pass
   var sp=document.getElementById('show-pass');
@@ -1080,6 +1222,28 @@ window.addEventListener('load',function(){
     var dp=e.target.closest('.del-prod-btn');
     if(dp&&confirm('حذف المنتج؟')) db.ref(currentStorePath+'/categories/'+currentCatId+'/products/'+dp.dataset.prodid).remove(function(){notif('تم الحذف');renderProdsView();});
 
+    // add size row
+    if(e.target.id==='add-size-btn'){
+      var i=document.querySelectorAll('.size-row-form').length;
+      var sc=document.getElementById('sizes-container');
+      if(sc){var d=document.createElement('div');d.className='size-row-form';d.style.cssText='display:flex;gap:6px;margin-bottom:6px';
+      d.innerHTML='<input class="f-input" style="margin:0;flex:2" placeholder="الاسم (مثال: كبير)" data-size-name="'+i+'">'
+        +'<input class="f-input" style="margin:0;flex:1" type="number" placeholder="السعر" data-size-price="'+i+'">'
+        +'<select class="f-input" style="margin:0;flex:1" data-size-req="'+i+'"><option value="optional">اختياري</option><option value="required">إجباري</option></select>'
+        +'<button onclick="this.parentElement.remove()" style="background:rgba(220,38,38,.2);color:#f87171;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-family:inherit">✕</button>';
+      sc.appendChild(d);}
+    }
+    // add extra row
+    if(e.target.id==='add-extra-btn'){
+      var i2=document.querySelectorAll('.extra-row-form').length;
+      var ec=document.getElementById('extras-container');
+      if(ec){var d2=document.createElement('div');d2.className='extra-row-form';d2.style.cssText='display:flex;gap:6px;margin-bottom:6px';
+      d2.innerHTML='<input class="f-input" style="margin:0;flex:2" placeholder="الاسم (مثال: جبن إضافي)" data-extra-name="'+i2+'">'
+        +'<input class="f-input" style="margin:0;flex:1" type="number" placeholder="السعر" data-extra-price="'+i2+'">'
+        +'<select class="f-input" style="margin:0;flex:1" data-extra-req="'+i2+'"><option value="optional">اختياري</option><option value="required">إجباري</option></select>'
+        +'<button onclick="this.parentElement.remove()" style="background:rgba(220,38,38,.2);color:#f87171;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-family:inherit">✕</button>';
+      ec.appendChild(d2);}
+    }
     // save/cancel prod
     if(e.target.id==='save-prod-btn') saveProd();
     if(e.target.id==='cancel-prod-btn'){editingProdId=null;renderProdsView();}
@@ -1120,6 +1284,14 @@ window.addEventListener('load',function(){
       });
     }
   }catch(e){}
+
+  // Cash checkbox toggle
+  document.addEventListener('change',function(e){
+    if(e.target.id==='pay-cash'){
+      var co=document.getElementById('cash-options');
+      if(co) co.style.display=e.target.checked?'block':'none';
+    }
+  });
 
   // Notification permission
   if('Notification' in window&&Notification.permission==='default') Notification.requestPermission();
