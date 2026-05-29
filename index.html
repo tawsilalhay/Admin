@@ -406,6 +406,11 @@ var STATUS_FLOW=['pending','accepted','on_the_way','delivered'];
 
 function san(s){if(!s)return '';return String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmtT(ts){if(!ts)return '';var d=new Date(ts);return d.toLocaleDateString('ar-SA',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});}
+function showNewOrderNotif(orderCount){
+  var msg='🔔 طلب جديد وصل! ('+orderCount+' طلبات معلّقة)';
+  showLocalNotif('توصيل الحي - طلب جديد', msg);
+}
+
 function notif(msg){var el=document.getElementById('notif-pop');el.textContent=msg;el.style.display='block';setTimeout(function(){el.style.display='none';},3500);}
 
 // ── FIREBASE ──
@@ -1296,6 +1301,75 @@ window.addEventListener('load',function(){
   // Notification permission
   if('Notification' in window&&Notification.permission==='default') Notification.requestPermission();
 });
+
+// ── PWA & PUSH NOTIFICATIONS ──
+var VAPID_PUBLIC_KEY = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBuyAtnYwXs7u--1nxWo';
+
+function registerPWA(){
+  if(!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('sw.js').then(function(reg){
+    console.log('SW registered');
+    askNotificationPermission(reg);
+  }).catch(function(err){
+    console.log('SW error:', err);
+  });
+}
+
+function askNotificationPermission(reg){
+  if(!('Notification' in window)) return;
+  if(Notification.permission==='granted'){
+    subscribePush(reg);
+    return;
+  }
+  if(Notification.permission!=='denied'){
+    Notification.requestPermission().then(function(perm){
+      if(perm==='granted') subscribePush(reg);
+    });
+  }
+}
+
+function urlBase64ToUint8Array(base64String){
+  var padding='='.repeat((4-base64String.length%4)%4);
+  var base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  var raw=window.atob(base64);
+  var output=new Uint8Array(raw.length);
+  for(var i=0;i<raw.length;++i) output[i]=raw.charCodeAt(i);
+  return output;
+}
+
+function subscribePush(reg){
+  reg.pushManager.getSubscription().then(function(sub){
+    if(sub) return;
+    reg.pushManager.subscribe({
+      userVisibleOnly:true,
+      applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    }).then(function(subscription){
+      console.log('Push subscribed');
+    }).catch(function(err){
+      console.log('Push error:', err);
+    });
+  });
+}
+
+// Show local notification when new order arrives (works when app is open)
+function showLocalNotif(title, body){
+  if(Notification.permission==='granted'){
+    new Notification(title, {
+      body: body,
+      icon: 'icon-192.png',
+      dir: 'rtl',
+      lang: 'ar',
+      requireInteraction: true
+    });
+  }
+}
+
+// Register PWA on load
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', registerPWA);
+} else {
+  registerPWA();
+}
 </script>
 </body>
 </html>
