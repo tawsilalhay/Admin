@@ -398,11 +398,31 @@ var pendingAlarmOrderId=null;
 // ZONE
 var zoneMap=null,zoneMarkers=[],zonePoly=null,zonePoints=[];
 
+var etaTimers={};
 var STATUS_LABELS={pending:'في الانتظار',accepted:'تم الاستلام وجاري التجهيز',on_the_way:'في الطريق',delivered:'تم التسليم',rejected:'مرفوض'};
 var STATUS_CLASS={pending:'s-pending',accepted:'s-accepted',on_the_way:'s-on_the_way',delivered:'s-delivered',rejected:'s-rejected'};
 var PAY_LABELS={apple_pay:'Apple Pay',mada:'مدى',cash:'نقداً',network:'شبكة',both_cash:'نقداً + شبكة'};
 var CHAT_WINDOW=30*60*1000;
 var STATUS_FLOW=['pending','accepted','on_the_way','delivered'];
+
+function startAdminEtaTimer(acceptedAt, etaMinutes, elementId){
+  if(etaTimers[elementId]) clearInterval(etaTimers[elementId]);
+  var endTime=acceptedAt+(etaMinutes*60*1000);
+  function update(){
+    var el=document.getElementById(elementId); if(!el){clearInterval(etaTimers[elementId]);return;}
+    var remaining=Math.max(0,endTime-Date.now());
+    var mins=Math.floor(remaining/60000);
+    var secs=Math.floor((remaining%60000)/1000);
+    var eta=new Date(endTime).toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
+    el.innerHTML='<div style="background:rgba(201,168,76,.15);border:1px solid #C9A84C;border-radius:8px;padding:8px 10px;margin-top:6px;text-align:center">'
+      +'<div style="font-size:10px;color:#C9A84C;margin-bottom:2px">⏱️ الوقت المتبقي للتوصيل</div>'
+      +'<div style="font-size:22px;font-weight:800;color:#C9A84C;font-variant-numeric:tabular-nums">'+(remaining>0?(mins+':'+(secs<10?'0':'')+secs):'وصل قريباً 🛵')+'</div>'
+      +'<div style="font-size:10px;color:#888">الوصول المتوقع: '+eta+'</div>'
+      +'</div>';
+  }
+  update();
+  etaTimers[elementId]=setInterval(update,1000);
+}
 
 function san(s){if(!s)return '';return String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmtT(ts){if(!ts)return '';var d=new Date(ts);return d.toLocaleDateString('ar-SA',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});}
@@ -636,6 +656,9 @@ function renderOrders(){
     var ts=o.timestamps||{};
     var tsHtml='';
     if(ts.accepted) tsHtml+='<div style="font-size:11px;color:#a5d6a7">استلام: '+fmtT(ts.accepted)+'</div>';
+    if(o.eta&&ts.accepted&&o.status!=='delivered'&&o.status!=='rejected'){
+      tsHtml+='<div id="eta-admin-'+k+'"></div>';
+    }
     if(ts.on_the_way) tsHtml+='<div style="font-size:11px;color:#80cbc4">في الطريق: '+fmtT(ts.on_the_way)+'</div>';
     if(ts.delivered) tsHtml+='<div style="font-size:11px;color:#C9A84C">تسليم: '+fmtT(ts.delivered)+'</div>';
     if(ts.rejected) tsHtml+='<div style="font-size:11px;color:#ef9a9a">رفض: '+fmtT(ts.rejected)+'</div>';
@@ -670,6 +693,15 @@ function renderOrders(){
       +'</div>';
   });
   el.innerHTML=html;
+  // تشغيل مؤقتات ETA
+  var keys2=Object.keys(orders).filter(function(k){return k!=='_loaded';});
+  keys2.forEach(function(k){
+    var o=orders[k];
+    var ts=o.timestamps||{};
+    if(o.eta&&ts.accepted&&o.status!=='delivered'&&o.status!=='rejected'){
+      startAdminEtaTimer(ts.accepted,o.eta,'eta-admin-'+k);
+    }
+  });
 }
 
 function buildStatusBtns(id,status){
