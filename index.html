@@ -626,7 +626,7 @@ function renderOrders(){
   var html='';
   keys.forEach(function(k){
     var o=orders[k];
-    var sid='#'+k.slice(-4).toUpperCase();
+    var sid='#'+(o.orderNum||k.slice(-4).toUpperCase());
     var ts=o.timestamps||{};
     var tsHtml='';
     if(ts.accepted) tsHtml+='<div style="font-size:11px;color:#a5d6a7">استلام: '+fmtT(ts.accepted)+'</div>';
@@ -650,7 +650,7 @@ function renderOrders(){
     else if(o.deliveryFee>0) feeHtml='<div class="order-pay" style="color:#C9A84C">رسوم توصيل: '+o.deliveryFee+' ريال</div>';
     var chatBtnHtml=isChatOpen(o)?'<button class="chat-btn open-chat-btn" data-order="'+k+'">💬 محادثة العميل'+(chatUnread[k]>0?'<span class="chat-unread">'+chatUnread[k]+'</span>':'')+'</button>':'';
     var statusHtml=buildStatusBtns(k,o.status);
-    html+='<div class="order-card'+(o.status==='pending'?' pending':'')+'">'
+    html+='<div class="order-card'+(o.status==='pending'?' pending':'')+'" data-orderid="'+k+'">'  
       +'<div class="order-header"><div><div class="order-id">'+sid+'</div><div class="order-time">'+fmtT(o.createdAt)+'</div></div>'
       +'<span class="status-badge '+STATUS_CLASS[o.status]+'">'+STATUS_LABELS[o.status]+'</span></div>'
       +'<div class="order-name">'+san(o.customerName||o.name||'')+'</div>'
@@ -671,7 +671,7 @@ function buildStatusBtns(id,status){
   if(status==='rejected') return '<div class="status-rejected">❌ طلب مرفوض</div>';
   var idx=STATUS_FLOW.indexOf(status);
   var next=STATUS_FLOW[idx+1];
-  var nextLabels={accepted:'✅ استلام الطلب وبدء التجهيز',on_the_way:'🛵 الطلب في الطريق',delivered:'🎉 تم التسليم'};
+  var nextLabels={accepted:'⏱️ استلام الطلب وتحديد وقت التوصيل',on_the_way:'🛵 الطلب في الطريق',delivered:'🎉 تم التسليم'};
   var html='<div class="status-btns">';
   if(next) html+='<button class="status-next-btn advance-btn" data-order="'+id+'" data-next="'+next+'">'+nextLabels[next]+'</button>';
   if(status==='pending'||status==='accepted') html+='<button class="status-reject-btn reject-btn" data-order="'+id+'">❌ رفض الطلب</button>';
@@ -1137,6 +1137,41 @@ function saveSettings(){
   db.ref(currentStorePath+'/settings').set(settings,function(){notif('تم حفظ الإعدادات ✅');});
 }
 
+
+// ── ETA PICKER ──
+function showEtaPicker(orderId) {
+  var existing = document.getElementById('eta-picker-'+orderId);
+  if(existing) { existing.remove(); return; }
+  var card = document.querySelector('[data-orderid="'+orderId+'"]');
+  if(!card) return;
+  var sb = card.querySelector('.status-btns');
+  if(!sb) return;
+  var div = document.createElement('div');
+  div.id = 'eta-picker-'+orderId;
+  div.style.cssText = 'background:#0f172a;border-radius:10px;padding:12px;margin-top:8px;border:1px solid #C9A84C';
+  div.innerHTML = '<div style="font-size:13px;color:#C9A84C;font-weight:800;margin-bottom:10px">⏱️ اختر وقت التوصيل المتوقع</div>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">'
+    + [5,10,15,20,25,30,35,40,45].map(function(m){
+        return '<button onclick="acceptWithEta(\''+orderId+'\','+m+')" style="padding:8px 14px;background:#1e293b;color:#C9A84C;border:1px solid #C9A84C;border-radius:8px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">'+m+' د</button>';
+      }).join('')
+    + '</div>'
+    + '<button onclick="document.getElementById(\'eta-picker-'+orderId+'\').remove()" style="width:100%;padding:7px;background:rgba(255,255,255,.08);color:#aaa;border:none;border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer">إلغاء</button>';
+  sb.appendChild(div);
+}
+
+function acceptWithEta(orderId, eta) {
+  if(!db||!currentStorePath) return;
+  var u = {};
+  u[currentStorePath+'/orders/'+orderId+'/status'] = 'accepted';
+  u[currentStorePath+'/orders/'+orderId+'/timestamps/accepted'] = Date.now();
+  u[currentStorePath+'/orders/'+orderId+'/eta'] = eta;
+  db.ref().update(u, function(){
+    notif('✅ تم قبول الطلب — وقت التوصيل: '+eta+' دقيقة');
+    var picker = document.getElementById('eta-picker-'+orderId);
+    if(picker) picker.remove();
+  });
+}
+
 window.addEventListener('load',function(){
   // show-pass
   var sp=document.getElementById('show-pass');
@@ -1168,7 +1203,10 @@ window.addEventListener('load',function(){
 
     // advance status
     var ab=e.target.closest('.advance-btn');
-    if(ab) setOrderStatus(ab.dataset.order,ab.dataset.next);
+    if(ab){
+      if(ab.dataset.next==='accepted') showEtaPicker(ab.dataset.order);
+      else setOrderStatus(ab.dataset.order,ab.dataset.next);
+    }
 
     // reject
     var rb=e.target.closest('.reject-btn');
