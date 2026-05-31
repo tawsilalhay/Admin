@@ -1,4 +1,4 @@
-ك<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -598,18 +598,24 @@ function stopAlarm(){
 }
 function dismissAlert(autoAccept){
   stopAlarm();
-  if(autoAccept&&pendingAlarmOrderId&&db){
-    var cur=orders[pendingAlarmOrderId];
-    if(cur&&cur.status==='pending'){
-      var u={};
-      u[currentStorePath+'/orders/'+pendingAlarmOrderId+'/status']='accepted';
-      u[currentStorePath+'/orders/'+pendingAlarmOrderId+'/timestamps/accepted']=Date.now();
-      db.ref().update(u);
-    }
-  }
+  var pendingId=pendingAlarmOrderId;
   pendingAlarmInfo=null;pendingAlarmOrderId=null;
   document.getElementById('alert-overlay').style.display='none';
   switchTab('orders');
+  // نفتح ETA picker بعد عرض الطلبات
+  if(autoAccept&&pendingId&&db){
+    var cur=orders[pendingId];
+    if(cur&&cur.status==='pending'){
+      setTimeout(function(){
+        var btns=document.querySelectorAll('.status-next-btn');
+        btns.forEach(function(btn){
+          if(btn.getAttribute('onclick')&&btn.getAttribute('onclick').indexOf(pendingId)>-1){
+            showEtaPicker(pendingId,btn);
+          }
+        });
+      },300);
+    }
+  }
 }
 
 // ── ORDERS ──
