@@ -1142,7 +1142,15 @@ function saveSettings(){
 function showEtaPicker(orderId) {
   var existing = document.getElementById('eta-picker-'+orderId);
   if(existing) { existing.remove(); return; }
-  var card = document.querySelector('[data-orderid="'+orderId+'"]');
+  // البحث عن الكارد عبر جميع الكاردات
+  var cards = document.querySelectorAll('.order-card');
+  var card = null;
+  cards.forEach(function(c){ if(c.getAttribute('data-orderid')===orderId) card=c; });
+  if(!card){
+    // fallback: ابحث عن زر advance-btn بنفس الـ order id
+    var btn = document.querySelector('.advance-btn[data-order="'+orderId+'"]');
+    if(btn) card = btn.closest('.order-card');
+  }
   if(!card) return;
   var sb = card.querySelector('.status-btns');
   if(!sb) return;
