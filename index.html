@@ -737,6 +737,16 @@ function updateStats(){
   document.getElementById('stat-done').textContent=d;
 }
 
+function sendPushNotification(title, message, playerId){
+  var body = {title: title, message: message, url: 'https://alhay.app'};
+  if(playerId) body.playerId = playerId;
+  fetch('https://alhay-api.vercel.app/api/notify', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  }).catch(function(){});
+}
+
 function setOrderStatus(id,newStatus){
   if(!db||!currentStorePath) return;
   var cur=orders[id]?orders[id].status:'pending';
@@ -747,6 +757,17 @@ function setOrderStatus(id,newStatus){
   u[currentStorePath+'/orders/'+id+'/status']=newStatus;
   u[currentStorePath+'/orders/'+id+'/timestamps/'+newStatus]=Date.now();
   db.ref().update(u);
+  // إرسال إشعار للعميل
+  var msgs={
+    accepted:'✅ طلبك تم استلامه وجاري التجهيز',
+    on_the_way:'🛵 طلبك في الطريق إليك!',
+    delivered:'🎉 تم تسليم طلبك!',
+    rejected:'❌ تم رفض طلبك'
+  };
+  if(msgs[newStatus]){
+    var order=orders[id]||{};
+    sendPushNotification('توصيل الحي', msgs[newStatus], order.playerId||null);
+  }
 }
 
 // ── INCOME ──
@@ -1218,6 +1239,8 @@ function acceptWithEta(orderId, eta) {
     notif('✅ تم قبول الطلب — وقت التوصيل: '+eta+' دقيقة');
     var picker = document.getElementById('eta-picker-'+orderId);
     if(picker) picker.remove();
+    var ord=orders[orderId]||{};
+    sendPushNotification('توصيل الحي', '✅ طلبك تم استلامه! الوقت المتوقع: '+eta+' دقيقة', ord.playerId||null);
   });
 }
 
