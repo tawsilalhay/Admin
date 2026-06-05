@@ -1573,7 +1573,7 @@ function renderHistory(){
       +'<div style="font-size:11px;color:#aaa;margin-top:2px">'+(o.orderNum||id.slice(-6))+' • '+d+'</div></div>'
       +'<div style="display:flex;gap:6px;align-items:center">'
       +'<span style="font-size:11px;color:'+(sc[o.status]||'#aaa')+'">'+(o.status||'')+'</span>'
-      +'<button onclick="printOrder(''+id+'')" style="background:#C9A84C;color:#1A0A00;border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">🖨️</button>'
+      +'<button onclick="printOrder(\'' +id+ '\')" style="background:#C9A84C;color:#1A0A00;border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">🖨️</button>'
       +'</div></div>';
   });
   var el=document.getElementById('history-list');
