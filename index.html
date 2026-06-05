@@ -1710,7 +1710,9 @@ function toggleDayRow(i){
   document.getElementById('day-status-'+i).textContent=active?'مفتوح':'مغلق';
 }
 
+var _hoursSameMode=false;
 function setHoursMode(same){
+  _hoursSameMode=same;
   var sameEl=document.getElementById('hours-same');
   if(sameEl) sameEl.checked=same;
   var unified=document.getElementById('hours-unified');
@@ -1778,7 +1780,8 @@ function loadHours(hours){
 }
 
 function getHoursData(){
-  var same=document.getElementById('hours-same').checked;
+  var sameEl=document.getElementById('hours-same');
+  var same=sameEl?sameEl.checked:_hoursSameMode;
   var data={sameEveryDay:same,days:{}};
   if(same){
     var uo=document.getElementById('unified-open');
