@@ -300,55 +300,6 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#1a1a2e;direction
           </div>
         </div>
       </div>
-      <!-- أوقات الدوام -->
-      <div class="income-card">
-        <div class="income-title">🕐 أوقات الدوام</div>
-        <div style="margin:10px 0">
-          <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer">
-            <input type="checkbox" id="hours-same" style="accent-color:#C9A84C;width:16px;height:16px" onchange="toggleHoursMode()">
-            <span style="font-size:13px">نفس الوقت لجميع الأيام</span>
-          </label>
-        </div>
-        <!-- وقت موحد -->
-        <div id="hours-unified" style="display:none;background:#0f172a;border-radius:10px;padding:12px;margin-bottom:10px">
-          <div style="font-size:13px;font-weight:700;color:#C9A84C;margin-bottom:10px">⏰ الوقت الموحد</div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <div style="flex:1">
-              <div style="font-size:11px;color:#aaa;margin-bottom:4px">من</div>
-              <input type="time" id="unified-open" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333;background:#1e1e2e;color:#fff;font-family:inherit">
-            </div>
-            <div style="flex:1">
-              <div style="font-size:11px;color:#aaa;margin-bottom:4px">إلى</div>
-              <input type="time" id="unified-close" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333;background:#1e1e2e;color:#fff;font-family:inherit">
-            </div>
-          </div>
-        </div>
-        <!-- وقت لكل يوم -->
-        <div id="hours-daily" style="display:flex;flex-direction:column;gap:8px">
-          <!-- سيتم إنشاؤه بـ JS -->
-        </div>
-        <!-- وقت التوصيل -->
-        <div style="background:#0f172a;border-radius:10px;padding:12px;margin-top:10px">
-          <div style="font-size:13px;font-weight:700;color:#C9A84C;margin-bottom:10px">🛵 ساعات التوصيل</div>
-          <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer">
-            <input type="checkbox" id="delivery-same-hours" style="accent-color:#C9A84C;width:16px;height:16px">
-            <span style="font-size:12px;color:#aaa">نفس ساعات الدوام</span>
-          </label>
-          <div id="delivery-hours-wrap">
-            <div style="display:flex;gap:8px;align-items:center">
-              <div style="flex:1">
-                <div style="font-size:11px;color:#aaa;margin-bottom:4px">التوصيل من</div>
-                <input type="time" id="delivery-open" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333;background:#1e1e2e;color:#fff;font-family:inherit">
-              </div>
-              <div style="flex:1">
-                <div style="font-size:11px;color:#aaa;margin-bottom:4px">التوصيل إلى</div>
-                <input type="time" id="delivery-close" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333;background:#1e1e2e;color:#fff;font-family:inherit">
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <button class="save-btn" onclick="saveSettings()">حفظ الإعدادات</button>
     </div>
   </div>
@@ -1235,102 +1186,18 @@ function viewImg(src){
 // ── EVENT DELEGATION ──
 // ── STORE SETTINGS ──
 // ── HOURS ──
-var DAYS=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
-var DAYS_EN=['sun','mon','tue','wed','thu','fri','sat'];
 
-function buildDailyHours(){
-  var wrap=document.getElementById('hours-daily');
-  if(!wrap) return;
-  var html='';
-  DAYS.forEach(function(day,i){
-    html+='<div style="background:#0f172a;border-radius:10px;padding:10px" id="day-row-'+i+'">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
-      +'<span style="font-size:13px;font-weight:700">'+day+'</span>'
-      +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer">'
-      +'<input type="checkbox" id="day-active-'+i+'" checked style="accent-color:#C9A84C;width:14px;height:14px">'
-      +'<span style="font-size:11px;color:#aaa">مفتوح</span>'
-      +'</label></div>'
-      +'<div style="display:flex;gap:8px">'
-      +'<input type="time" id="day-open-'+i+'" value="09:00" style="flex:1;padding:6px;border-radius:8px;border:1px solid #333;background:#1e1e2e;color:#fff;font-family:inherit;font-size:12px">'
-      +'<span style="color:#aaa;line-height:32px">-</span>'
-      +'<input type="time" id="day-close-'+i+'" value="23:00" style="flex:1;padding:6px;border-radius:8px;border:1px solid #333;background:#1e1e2e;color:#fff;font-family:inherit;font-size:12px">'
-      +'</div></div>';
-  });
-  wrap.innerHTML=html;
-}
 
-function toggleHoursMode(){
-  var same=document.getElementById('hours-same').checked;
-  document.getElementById('hours-unified').style.display=same?'block':'none';
-  document.getElementById('hours-daily').style.display=same?'none':'flex';
-}
 
-function loadHours(hours){
-  if(!hours) return;
-  var same=hours.sameEveryDay||false;
-  var sameEl=document.getElementById('hours-same');
-  if(sameEl){sameEl.checked=same;toggleHoursMode();}
-  if(same&&hours.unified){
-    var uo=document.getElementById('unified-open');
-    var uc=document.getElementById('unified-close');
-    if(uo) uo.value=hours.unified.open||'09:00';
-    if(uc) uc.value=hours.unified.close||'23:00';
-  }
-  if(hours.days){
-    DAYS_EN.forEach(function(d,i){
-      var day=hours.days[d]||{};
-      var act=document.getElementById('day-active-'+i);
-      var op=document.getElementById('day-open-'+i);
-      var cl=document.getElementById('day-close-'+i);
-      if(act) act.checked=day.active!==false;
-      if(op) op.value=day.open||'09:00';
-      if(cl) cl.value=day.close||'23:00';
-    });
-  }
-  if(hours.delivery){
-    var ds=document.getElementById('delivery-same-hours');
-    var dop=document.getElementById('delivery-open');
-    var dcl=document.getElementById('delivery-close');
-    if(ds) ds.checked=hours.delivery.sameAsStore||false;
-    if(dop) dop.value=hours.delivery.open||'09:00';
-    if(dcl) dcl.value=hours.delivery.close||'23:00';
-    if(document.getElementById('delivery-hours-wrap'))
-      document.getElementById('delivery-hours-wrap').style.display=(hours.delivery.sameAsStore)?'none':'block';
-  }
-}
 
-function getHoursData(){
-  var same=document.getElementById('hours-same').checked;
-  var data={sameEveryDay:same};
-  if(same){
-    data.unified={
-      open:document.getElementById('unified-open').value||'09:00',
-      close:document.getElementById('unified-close').value||'23:00'
-    };
-  }
-  data.days={};
-  DAYS_EN.forEach(function(d,i){
-    var act=document.getElementById('day-active-'+i);
-    var op=document.getElementById('day-open-'+i);
-    var cl=document.getElementById('day-close-'+i);
-    data.days[d]={
-      active:act?act.checked:true,
-      open:op?op.value:'09:00',
-      close:cl?cl.value:'23:00'
-    };
-  });
-  var ds=document.getElementById('delivery-same-hours');
-  data.delivery={
-    sameAsStore:ds?ds.checked:true,
-    open:document.getElementById('delivery-open').value||'09:00',
-    close:document.getElementById('delivery-close').value||'23:00'
-  };
-  return data;
-}
+
+
+
+
+
 
 function loadSettings(){
   if(!db||!currentStoreId) return;
-  buildDailyHours();
   db.ref(currentStorePath+'/settings').once('value',function(snap){
     var s=snap.val()||{};
     var df=document.getElementById('set-delivery-fee');
@@ -1366,7 +1233,6 @@ function saveSettings(){
     cashType:cashType,
     mada:document.getElementById('pay-mada').checked,
     applePay:document.getElementById('pay-apple').checked,
-    hours:getHoursData()
   };
   db.ref(currentStorePath+'/settings').set(settings,function(){notif('تم حفظ الإعدادات ✅');});
 }
