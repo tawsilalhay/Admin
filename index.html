@@ -1680,7 +1680,7 @@ var DAYS_KEY=['sun','mon','tue','wed','thu','fri','sat'];
 
 function buildDailyHours(){
   var wrap=document.getElementById('hours-daily');
-  if(!wrap) return;
+  if(!wrap||wrap.children.length>0) return;
   var html='';
   DAYS_AR.forEach(function(day,i){
     html+='<div style="background:#0f172a;border-radius:10px;padding:10px;border:1px solid rgba(255,255,255,.05)">'
@@ -1711,14 +1711,28 @@ function toggleDayRow(i){
 }
 
 function setHoursMode(same){
-  document.getElementById('hours-same').checked=same;
-  document.getElementById('hours-unified').style.display=same?'block':'none';
-  document.getElementById('hours-daily').style.display=same?'flex':'none';
+  var sameEl=document.getElementById('hours-same');
+  if(sameEl) sameEl.checked=same;
+  var unified=document.getElementById('hours-unified');
+  var daily=document.getElementById('hours-daily');
+  if(unified) unified.style.display=same?'block':'none';
+  if(daily){
+    daily.style.display=same?'none':'flex';
+    // نبني الأيام دائماً عشان تكون جاهزة
+    buildDailyHours();
+  }
   var db=document.getElementById('mode-daily-btn');
   var sb=document.getElementById('mode-same-btn');
-  if(db){db.style.borderColor=same?'#333':'#C9A84C';db.style.background=same?'transparent':'#1a3a0a';db.style.color=same?'#aaa':'#C9A84C';}
-  if(sb){sb.style.borderColor=same?'#C9A84C':'#333';sb.style.background=same?'#1a2a3a':'transparent';sb.style.color=same?'#60a5fa':'#aaa';}
-  if(!same) buildDailyHours();
+  if(db){
+    db.style.borderColor=same?'#333':'#C9A84C';
+    db.style.background=same?'transparent':'#1a3a0a';
+    db.style.color=same?'#aaa':'#C9A84C';
+  }
+  if(sb){
+    sb.style.borderColor=same?'#C9A84C':'#333';
+    sb.style.background=same?'#1a2a3a':'transparent';
+    sb.style.color=same?'#60a5fa':'#aaa';
+  }
 }
 function toggleHoursMode(){
   setHoursMode(document.getElementById('hours-same').checked);
