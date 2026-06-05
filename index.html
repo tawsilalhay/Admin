@@ -1283,7 +1283,12 @@ function loadSettings(){
       var radios=document.querySelectorAll('input[name="cash-type"]');
       radios.forEach(function(r){r.checked=r.value===s.cashType;});
     }
-    if(s.hours) loadHours(s.hours);
+    if(s.hours){
+      loadHours(s.hours);
+    } else {
+      // لا توجد ساعات محفوظة - نبني الجدول الافتراضي
+      setHoursMode(false);
+    }
   });
 }
 
