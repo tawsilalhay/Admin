@@ -346,6 +346,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#1a1a2e;direction
           <div style="display:flex;gap:8px;margin-bottom:12px">
             <button id="mode-daily-btn" onclick="setHoursMode(false)" style="flex:1;padding:9px;border-radius:10px;border:2px solid #C9A84C;background:#1a3a0a;color:#C9A84C;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">كل يوم مستقل</button>
             <button id="mode-same-btn" onclick="setHoursMode(true)" style="flex:1;padding:9px;border-radius:10px;border:2px solid #333;background:transparent;color:#aaa;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">نفس الوقت يومياً</button>
+            <button id="mode-24-btn" onclick="setHours24()" style="flex:1;padding:9px;border-radius:10px;border:2px solid #333;background:transparent;color:#aaa;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">24 ساعة</button>
           </div>
           <!-- وقت موحد -->
           <div id="hours-unified" style="display:none">
@@ -1739,7 +1740,26 @@ function setHoursMode(same){
     sb.style.background=same?'#1a2a3a':'transparent';
     sb.style.color=same?'#60a5fa':'#aaa';
   }
+  // إعادة ضبط زر 24 ساعة
+  var btn24=document.getElementById('mode-24-btn');
+  if(btn24){btn24.style.borderColor='#333';btn24.style.background='transparent';btn24.style.color='#aaa';}
 }
+function setHours24(){
+  // نفعل وضع "نفس الوقت" ونضبط 00:00 - 23:59
+  setHoursMode(true);
+  var uo=document.getElementById('unified-open');
+  var uc=document.getElementById('unified-close');
+  if(uo) uo.value='00:00';
+  if(uc) uc.value='23:59';
+  // تحديث شكل الزر
+  var btn24=document.getElementById('mode-24-btn');
+  var db=document.getElementById('mode-daily-btn');
+  var sb=document.getElementById('mode-same-btn');
+  if(btn24){btn24.style.borderColor='#C9A84C';btn24.style.background='#1a3a0a';btn24.style.color='#C9A84C';}
+  if(db){db.style.borderColor='#333';db.style.background='transparent';db.style.color='#aaa';}
+  if(sb){sb.style.borderColor='#333';sb.style.background='transparent';sb.style.color='#aaa';}
+}
+
 function toggleHoursMode(){
   setHoursMode(document.getElementById('hours-same').checked);
 }
