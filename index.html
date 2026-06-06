@@ -1305,8 +1305,12 @@ function saveSettings(){
     mada:document.getElementById('pay-mada').checked,
     applePay:document.getElementById('pay-apple').checked,
   };
-  settings.hours=getHoursData();
-  db.ref(currentStorePath+'/settings').set(settings,function(){notif('تم حفظ الإعدادات ✅');});
+  var hoursData=getHoursData();
+  settings.hours=hoursData;
+  db.ref(currentStorePath+'/settings').set(settings,function(err){
+    if(err){notif('❌ خطأ في الحفظ');}
+    else{notif('تم حفظ الإعدادات ✅');}
+  });
 }
 
 
@@ -1780,32 +1784,42 @@ function loadHours(hours){
 }
 
 function getHoursData(){
-  var sameEl=document.getElementById('hours-same');
-  var same=sameEl?sameEl.checked:_hoursSameMode;
+  // نقرأ الوضع من المتغير العالمي
+  var same=_hoursSameMode;
   var data={sameEveryDay:same,days:{}};
+  
   if(same){
+    // وقت موحد
     var uo=document.getElementById('unified-open');
     var uc=document.getElementById('unified-close');
-    data.unified={open:uo?uo.value:'09:00',close:uc?uc.value:'23:00'};
+    data.unified={
+      open:uo&&uo.value?uo.value:'09:00',
+      close:uc&&uc.value?uc.value:'23:00'
+    };
   }
+  
+  // أوقات كل يوم - نجمعها دائماً
   DAYS_KEY.forEach(function(d,i){
-    var act=document.getElementById('day-active-'+i);
-    var op=document.getElementById('day-open-'+i);
-    var cl=document.getElementById('day-close-'+i);
+    var actEl=document.getElementById('day-active-'+i);
+    var opEl=document.getElementById('day-open-'+i);
+    var clEl=document.getElementById('day-close-'+i);
     data.days[d]={
-      active:act?act.checked:true,
-      open:op?op.value:'09:00',
-      close:cl?cl.value:'23:00'
+      active:actEl?actEl.checked:true,
+      open:opEl&&opEl.value?opEl.value:'09:00',
+      close:clEl&&clEl.value?clEl.value:'23:00'
     };
   });
-  var ds=document.getElementById('delivery-same-hours');
-  var dop=document.getElementById('delivery-open');
-  var dcl=document.getElementById('delivery-close');
+  
+  // ساعات التوصيل
+  var dsEl=document.getElementById('delivery-same-hours');
+  var dopEl=document.getElementById('delivery-open');
+  var dclEl=document.getElementById('delivery-close');
   data.delivery={
-    sameAsStore:ds?ds.checked:false,
-    open:dop?dop.value:'09:00',
-    close:dcl?dcl.value:'23:00'
+    sameAsStore:dsEl?dsEl.checked:false,
+    open:dopEl&&dopEl.value?dopEl.value:'09:00',
+    close:dclEl&&dclEl.value?dclEl.value:'23:00'
   };
+  
   return data;
 }
 
