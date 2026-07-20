@@ -478,13 +478,17 @@ firebase.initializeApp(CONFIG.firebase);
 db = firebase.firestore(); auth = firebase.auth(); storage = firebase.storage();
 applyLang();
 
+var STARTED = false;
+function enterPanel(showDevBanner){
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('panel').classList.remove('hidden');
+  if(showDevBanner) document.getElementById('devBanner').classList.remove('hidden');
+  if(!STARTED){ STARTED = true; try{ startListeners(); }catch(e){ console.warn(e); } }
+}
+
 auth.onAuthStateChanged(function(u){
-  if(u){
-    document.getElementById('login').classList.add('hidden');
-    document.getElementById('panel').classList.remove('hidden');
-    if(DEV_MODE || (u.isAnonymous && CONFIG.devLogin.enabled)) document.getElementById('devBanner').classList.remove('hidden');
-    startListeners();
-  } else {
+  if(u){ enterPanel(DEV_MODE || u.isAnonymous); }
+  else if(!DEV_MODE){
     document.getElementById('login').classList.remove('hidden');
     document.getElementById('panel').classList.add('hidden');
   }
@@ -497,12 +501,15 @@ function doLogin(){
   var d = CONFIG.devLogin;
   if(d && d.enabled && e === d.user && p === d.pass){
     DEV_MODE = true;
-    auth.signInAnonymously().catch(function(err){ var el=document.getElementById('lgErr'); el.textContent=err.message; el.classList.remove('hidden'); });
+    /* افتح اللوحة فوراً — لا ننتظر Firebase */
+    enterPanel(true);
+    /* حاول تسجيل دخول مجهول بالخلفية حتى تعمل قراءة/كتابة البيانات، بدون منع الدخول لو فشل */
+    if(auth && auth.signInAnonymously) auth.signInAnonymously().catch(function(){});
     return;
   }
   auth.signInWithEmailAndPassword(e, p).catch(function(){ var el=document.getElementById('lgErr'); el.textContent=t('loginErr'); el.classList.remove('hidden'); });
 }
-function doLogout(){ auth.signOut(); }
+function doLogout(){ DEV_MODE = false; STARTED = false; if(auth) auth.signOut(); location.reload(); }
 
 function cycleLang(){ LANG = LANG==='ar'?'en':'ar'; localStorage.setItem('nsm_admin_lang',LANG); applyLang(); renderAll(); }
 function applyLang(){
