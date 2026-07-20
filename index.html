@@ -133,7 +133,7 @@ th{color:var(--muted);font-weight:500;font-size:12.5px}
     <div class="hlogo">N</div>
     <h2 style="margin:0 0 4px;font-size:20px">لوحة تحكم نسيم</h2>
     <p style="color:var(--muted);margin:0 0 22px;font-size:13px">NASEEM COFFEE ADMIN</p>
-    <input class="field" id="lgEmail" type="text" placeholder="nas">
+    <input class="field" id="lgEmail" type="email" placeholder="admin@naseem.app">
     <input class="field" id="lgPass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
     <div class="err hidden" id="lgErr"></div>
     <button class="btn block" onclick="doLogin()">دخول</button>
@@ -387,21 +387,23 @@ th{color:var(--muted);font-weight:500;font-size:12.5px}
 
 var CONFIG = {
   firebase: {
-    apiKey: "PUT_API_KEY",
+    apiKey: "AIzaSyCkTZARcHcG8z0OmZ0KIavzZkV1Nx0WiRo",
     authDomain: "naseem-coffee.firebaseapp.com",
     projectId: "naseem-coffee",
-    storageBucket: "naseem-coffee.appspot.com",
-    messagingSenderId: "PUT_SENDER_ID",
-    appId: "PUT_APP_ID"
+    storageBucket: "naseem-coffee.firebasestorage.app",
+    messagingSenderId: "853554665086",
+    appId: "1:853554665086:web:e2e9259c56fe7e9fcd6a2f"
   },
   mapsApiKey: "PUT_GOOGLE_MAPS_KEY",
   translateEndpoint: "https://REGION-PROJECT.cloudfunctions.net/translateText",
   defaultCenter: { lat: 24.4686, lng: 39.6142 },
   chatCloseMinutes: 30,
 
-  /* !! وضع التجربة المحلية فقط — الدخول مكشوف في مصدر الصفحة.
-     قبل النشر: غيّر enabled إلى false وأنشئ حساب حقيقي في Firebase Auth. */
-  devLogin: { enabled: true, user: "nas", pass: "1234" }
+  /* معرّف حساب الأدمن في Firebase Auth */
+  adminUid: "kFpcmgZYSJhA659UtDMQhWVpesM2",
+
+  /* وضع التجربة معطّل — الدخول الآن بالإيميل والباسورد الحقيقي */
+  devLogin: { enabled: false, user: "nas", pass: "1234" }
 };
 
 var I18N = {
@@ -487,8 +489,9 @@ function enterPanel(showDevBanner){
 }
 
 auth.onAuthStateChanged(function(u){
-  if(u){ enterPanel(DEV_MODE || u.isAnonymous); }
-  else if(!DEV_MODE){
+  if(u && (u.uid === CONFIG.adminUid || DEV_MODE)){
+    enterPanel(DEV_MODE);
+  } else if(!DEV_MODE){
     document.getElementById('login').classList.remove('hidden');
     document.getElementById('panel').classList.add('hidden');
   }
@@ -497,17 +500,30 @@ auth.onAuthStateChanged(function(u){
 function doLogin(){
   var e = document.getElementById('lgEmail').value.trim();
   var p = document.getElementById('lgPass').value;
+  var btn = document.querySelector('.loginbox .btn');
   document.getElementById('lgErr').classList.add('hidden');
+
+  // وضع التجربة (معطّل افتراضياً)
   var d = CONFIG.devLogin;
   if(d && d.enabled && e === d.user && p === d.pass){
-    DEV_MODE = true;
-    /* افتح اللوحة فوراً — لا ننتظر Firebase */
-    enterPanel(true);
-    /* حاول تسجيل دخول مجهول بالخلفية حتى تعمل قراءة/كتابة البيانات، بدون منع الدخول لو فشل */
+    DEV_MODE = true; enterPanel(true);
     if(auth && auth.signInAnonymously) auth.signInAnonymously().catch(function(){});
     return;
   }
-  auth.signInWithEmailAndPassword(e, p).catch(function(){ var el=document.getElementById('lgErr'); el.textContent=t('loginErr'); el.classList.remove('hidden'); });
+
+  if(btn){ btn.disabled = true; }
+  auth.signInWithEmailAndPassword(e, p)
+    .then(function(cred){
+      // السماح فقط لحساب الأدمن المحدّد
+      if(cred.user.uid !== CONFIG.adminUid){
+        auth.signOut();
+        throw new Error('not-admin');
+      }
+    })
+    .catch(function(){
+      var el=document.getElementById('lgErr'); el.textContent=t('loginErr'); el.classList.remove('hidden');
+    })
+    .then(function(){ if(btn){ btn.disabled = false; } });
 }
 function doLogout(){ DEV_MODE = false; STARTED = false; if(auth) auth.signOut(); location.reload(); }
 
