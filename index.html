@@ -469,7 +469,7 @@ var I18N = {
     st_received:"تم استلام الطلب",st_preparing:"جاري تجهيز الطلب",st_ready:"جاهز للاستلام",
     st_out:"خرج للتوصيل",st_delivered:"تم التسليم",loginErr:"بيانات الدخول غير صحيحة",
     reqFields:"املأ الحقول المطلوبة",deliveryFee:"رسوم التوصيل",sar:"ر.س",uploading:"جاري الرفع...",
-    pricingType:"نوع التسعير",fixedPrice:"سعر ثابت",bySizes:"حسب الأحجام",sizesLbl:"الأحجام (حتى 4 — الاسم عربي/إنجليزي + السعر)",addSize:"+ إضافة حجم",sizeNameAr:"اسم الحجم (عربي)",sizeNameEn:"Size (EN)",needSize:"أضف حجماً واحداً على الأقل",menuMgmt:"القائمة",
+    pricingType:"نوع التسعير",fixedPrice:"سعر ثابت",bySizes:"حسب الأحجام",sizesLbl:"الأحجام (حتى 4 — الاسم عربي/إنجليزي + السعر)",addSize:"+ إضافة حجم",sizeNameAr:"اسم الحجم (عربي)",sizeNameEn:"Size (EN)",needSize:"أضف حجماً واحداً على الأقل",menuMgmt:"القائمة",cash:"الدفع عند الاستلام",cardLbl:"بطاقة",unpaid:"غير مدفوع",
     chatClosedLbl:"أُغلقت المحادثة (للقراءة فقط)",comment:"التعليق",stars:"النجوم",date:"التاريخ",
     s_totalOrders:"إجمالي الطلبات",s_revenue:"إجمالي الإيرادات",s_completed:"الطلبات المكتملة",
     s_cancelled:"الطلبات الملغاة",s_avgValue:"متوسط قيمة الطلب",s_avgPrep:"متوسط وقت التجهيز",
@@ -495,7 +495,7 @@ var I18N = {
     st_received:"Order received",st_preparing:"Preparing",st_ready:"Ready for pickup",
     st_out:"Out for delivery",st_delivered:"Delivered",loginErr:"Invalid credentials",
     reqFields:"Fill the required fields",deliveryFee:"Delivery fee",sar:"SAR",uploading:"Uploading...",
-    pricingType:"Pricing type",fixedPrice:"Fixed price",bySizes:"By sizes",sizesLbl:"Sizes (up to 4 — name AR/EN + price)",addSize:"+ Add size",sizeNameAr:"Size (AR)",sizeNameEn:"Size (EN)",needSize:"Add at least one size",menuMgmt:"Menu",
+    pricingType:"Pricing type",fixedPrice:"Fixed price",bySizes:"By sizes",sizesLbl:"Sizes (up to 4 — name AR/EN + price)",addSize:"+ Add size",sizeNameAr:"Size (AR)",sizeNameEn:"Size (EN)",needSize:"Add at least one size",menuMgmt:"Menu",cash:"Pay on receipt",cardLbl:"Card",unpaid:"Unpaid",
     chatClosedLbl:"Chat closed (read only)",comment:"Comment",stars:"Stars",date:"Date",
     s_totalOrders:"Total orders",s_revenue:"Total revenue",s_completed:"Completed",
     s_cancelled:"Cancelled",s_avgValue:"Avg order value",s_avgPrep:"Avg prep time",
@@ -742,6 +742,12 @@ function renderOrders(){
   });
   box.innerHTML=h+'</tbody></table>';
 }
+function payMethodLabel(m){
+  if(m==='cash') return t('cash');
+  if(m==='applepay') return 'Apple Pay';
+  if(m==='card') return t('cardLbl');
+  return '—';
+}
 function openOrder(id){
   var o=S.orders.filter(function(x){return x.id===id;})[0]; if(!o) return;
   var items='';
@@ -759,7 +765,7 @@ function openOrder(id){
       '<div><label>'+t('customer')+'</label>'+esc(o.customerName||'—')+'</div>'+
       '<div><label>'+t('phone')+'</label><a href="tel:'+esc(o.customerPhone)+'">'+esc(o.customerPhone||'—')+'</a></div>'+
       '<div><label>'+t('type')+'</label>'+t(o.type==='delivery'?'delivery':'pickup')+'</div>'+
-      '<div><label>'+t('payment')+'</label>'+esc(o.paymentMethod||'—')+'</div>'+
+      '<div><label>'+t('payment')+'</label>'+payMethodLabel(o.paymentMethod)+(o.paid?'':' <span class="pill preparing">'+t('unpaid')+'</span>')+'</div>'+
       '<div><label>'+t('time')+'</label>'+created+'</div>'+
       '<div><label>'+t('location')+'</label>'+loc+'</div>'+
     '</div>'+
