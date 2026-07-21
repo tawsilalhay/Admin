@@ -7,6 +7,8 @@
 <title>نسيم | لوحة التحكم</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{
   --primary:#3F4A32;--primary-dark:#2C3423;--secondary:#E3D5B8;--secondary-light:#F5EEE1;
@@ -124,6 +126,9 @@ th{color:var(--muted);font-weight:500;font-size:12.5px}
 .dfilter button{padding:8px 15px;border-radius:20px;background:var(--secondary-light);color:var(--primary);font-size:13px;font-weight:500}
 .dfilter button.on{background:var(--primary);color:#fff}
 .devBanner{background:#B3402F;color:#fff;text-align:center;padding:8px 14px;font-size:13px;font-weight:500;position:sticky;top:0;z-index:70}
+.cats-admin{display:flex;gap:8px;flex-wrap:wrap}
+.catchip{padding:9px 18px;border-radius:22px;background:var(--secondary-light);color:var(--primary);font-size:14px;font-weight:500;transition:.15s}
+.catchip.on{background:var(--primary);color:#fff}
 </style>
 </head>
 <body>
@@ -152,8 +157,7 @@ th{color:var(--muted);font-weight:500;font-size:12.5px}
   <nav><div class="nav-in">
     <button class="on" data-tab="t-dash" onclick="tab('t-dash')" data-i="dashboard">الإحصائيات</button>
     <button data-tab="t-orders" onclick="tab('t-orders')"><span data-i="orders">الطلبات</span><span class="badge hidden" id="bOrders">0</span></button>
-    <button data-tab="t-cats" onclick="tab('t-cats')" data-i="categories">التصنيفات</button>
-    <button data-tab="t-prods" onclick="tab('t-prods')" data-i="products">المنتجات</button>
+    <button data-tab="t-menu" onclick="tab('t-menu')" data-i="menuMgmt">القائمة</button>
     <button data-tab="t-banners" onclick="tab('t-banners')" data-i="banners">البنرات</button>
     <button data-tab="t-reviews" onclick="tab('t-reviews')" data-i="reviews">التقييمات</button>
     <button data-tab="t-zone" onclick="tab('t-zone')" data-i="zone">منطقة التوصيل</button>
@@ -205,31 +209,30 @@ th{color:var(--muted);font-weight:500;font-size:12.5px}
     </div>
   </section>
 
-  <!-- CATEGORIES -->
-  <section id="t-cats" class="tab">
-    <div class="card">
-      <h3 data-i="addCategory">إضافة تصنيف</h3>
-      <div class="f3">
-        <div><label>الاسم (عربي)</label><input class="field" id="cAr"></div>
-        <div><label>Name (English)</label><input class="field" id="cEn"></div>
-        <div><label data-i="order">الترتيب</label><input class="field" id="cOrder" type="number" value="1"></div>
-      </div>
-      <button class="btn" onclick="saveCat()" data-i="save">حفظ</button>
-      <input type="hidden" id="cId">
-    </div>
-    <div class="card"><h3 data-i="categories">التصنيفات</h3><div id="catsBox"></div></div>
-  </section>
-
-  <!-- PRODUCTS -->
-  <section id="t-prods" class="tab">
+  <!-- MENU (categories + products merged) -->
+  <section id="t-menu" class="tab">
     <div class="card">
       <div class="row" style="justify-content:space-between">
-        <h3 style="margin:0" data-i="products">المنتجات</h3>
-        <button class="btn" onclick="openProdModal()" data-i="addProduct">إضافة منتج</button>
+        <h3 style="margin:0" data-i="menuMgmt">القائمة</h3>
+        <button class="btn ghost" onclick="openCatModal()" data-i="addCategory">إضافة تصنيف</button>
       </div>
+      <div class="cats-admin" id="catsChips" style="margin-top:14px"></div>
     </div>
-    <div class="card"><div id="prodsBox"></div></div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px">
+        <h3 style="margin:0" id="menuCatTitle">—</h3>
+        <div class="row">
+          <button class="btn ghost sm" id="btnEditCat" onclick="editCurrentCat()" data-i="edit">تعديل</button>
+          <button class="btn danger sm" id="btnDelCat" onclick="delCurrentCat()" data-i="del">حذف</button>
+        </div>
+      </div>
+      <button class="btn" style="margin:8px 0 14px" id="btnAddProd" onclick="openProdModal()" data-i="addProduct">إضافة منتج</button>
+      <div id="prodsBox"></div>
+    </div>
   </section>
+
+  <!-- hidden legacy category box (kept for compatibility) -->
+  <div id="catsBox" class="hidden"></div>
 
   <!-- BANNERS -->
   <section id="t-banners" class="tab">
@@ -302,6 +305,27 @@ th{color:var(--muted);font-weight:500;font-size:12.5px}
 </main>
 </div>
 
+<!-- CATEGORY MODAL -->
+<div class="modal" id="mCat">
+  <div class="modal-bg" onclick="closeModal('mCat')"></div>
+  <div class="modal-card">
+    <h3 id="catModalTitle" data-i="addCategory">إضافة تصنيف</h3>
+    <div class="f2">
+      <div><label>الاسم (عربي)</label><input class="field" id="cAr"></div>
+      <div><label>Name (English)</label><input class="field" id="cEn"></div>
+    </div>
+    <label data-i="order">الترتيب</label><input class="field" id="cOrder" type="number" value="1">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <label style="margin:0"><input type="checkbox" id="cHidden"> <span data-i="hide">إخفاء</span></label>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:14px">
+      <button class="btn ghost" onclick="closeModal('mCat')" data-i="cancel">إلغاء</button>
+      <button class="btn" onclick="saveCat()" data-i="save">حفظ</button>
+    </div>
+    <input type="hidden" id="cId">
+  </div>
+</div>
+
 <!-- PRODUCT MODAL -->
 <div class="modal" id="mProd">
   <div class="modal-bg" onclick="closeModal('mProd')"></div>
@@ -315,11 +339,28 @@ th{color:var(--muted);font-weight:500;font-size:12.5px}
       <div><label>الوصف (عربي)</label><input class="field" id="pdAr"></div>
       <div><label>Description (EN)</label><input class="field" id="pdEn"></div>
     </div>
-    <div class="f3">
-      <div><label data-i="price">السعر</label><input class="field" id="pPrice" type="number" step="0.5"></div>
+    <div class="f2">
       <div><label data-i="category">التصنيف</label><select class="field" id="pCat"></select></div>
       <div><label data-i="order">الترتيب</label><input class="field" id="pOrder" type="number" value="1"></div>
     </div>
+
+    <label data-i="pricingType">نوع التسعير</label>
+    <div class="seg" style="margin-bottom:14px">
+      <button type="button" id="ptFixed" class="on" onclick="setPricing('fixed')" data-i="fixedPrice">سعر ثابت</button>
+      <button type="button" id="ptSizes" onclick="setPricing('sizes')" data-i="bySizes">حسب الأحجام</button>
+    </div>
+
+    <div id="fixedBox">
+      <label data-i="price">السعر</label>
+      <input class="field" id="pPrice" type="number" step="0.5">
+    </div>
+
+    <div id="sizesBox" class="hidden">
+      <label data-i="sizesLbl">الأحجام (حتى 4 — الاسم عربي/إنجليزي + السعر)</label>
+      <div id="sizesRows"></div>
+      <button type="button" class="btn ghost sm" onclick="addSizeRow()" data-i="addSize">+ إضافة حجم</button>
+    </div>
+
     <label data-i="mainImage">الصورة الرئيسية</label>
     <div class="upbox" onclick="document.getElementById('fMain').click()" data-i="upload">اضغط لرفع صورة</div>
     <input type="file" id="fMain" accept="image/*" class="hidden" onchange="uploadImg(this,'main')">
@@ -428,6 +469,7 @@ var I18N = {
     st_received:"تم استلام الطلب",st_preparing:"جاري تجهيز الطلب",st_ready:"جاهز للاستلام",
     st_out:"خرج للتوصيل",st_delivered:"تم التسليم",loginErr:"بيانات الدخول غير صحيحة",
     reqFields:"املأ الحقول المطلوبة",deliveryFee:"رسوم التوصيل",sar:"ر.س",uploading:"جاري الرفع...",
+    pricingType:"نوع التسعير",fixedPrice:"سعر ثابت",bySizes:"حسب الأحجام",sizesLbl:"الأحجام (حتى 4 — الاسم عربي/إنجليزي + السعر)",addSize:"+ إضافة حجم",sizeNameAr:"اسم الحجم (عربي)",sizeNameEn:"Size (EN)",needSize:"أضف حجماً واحداً على الأقل",menuMgmt:"القائمة",
     chatClosedLbl:"أُغلقت المحادثة (للقراءة فقط)",comment:"التعليق",stars:"النجوم",date:"التاريخ",
     s_totalOrders:"إجمالي الطلبات",s_revenue:"إجمالي الإيرادات",s_completed:"الطلبات المكتملة",
     s_cancelled:"الطلبات الملغاة",s_avgValue:"متوسط قيمة الطلب",s_avgPrep:"متوسط وقت التجهيز",
@@ -453,6 +495,7 @@ var I18N = {
     st_received:"Order received",st_preparing:"Preparing",st_ready:"Ready for pickup",
     st_out:"Out for delivery",st_delivered:"Delivered",loginErr:"Invalid credentials",
     reqFields:"Fill the required fields",deliveryFee:"Delivery fee",sar:"SAR",uploading:"Uploading...",
+    pricingType:"Pricing type",fixedPrice:"Fixed price",bySizes:"By sizes",sizesLbl:"Sizes (up to 4 — name AR/EN + price)",addSize:"+ Add size",sizeNameAr:"Size (AR)",sizeNameEn:"Size (EN)",needSize:"Add at least one size",menuMgmt:"Menu",
     chatClosedLbl:"Chat closed (read only)",comment:"Comment",stars:"Stars",date:"Date",
     s_totalOrders:"Total orders",s_revenue:"Total revenue",s_completed:"Completed",
     s_cancelled:"Cancelled",s_avgValue:"Avg order value",s_avgPrep:"Avg prep time",
@@ -545,6 +588,7 @@ function tab(id){
   var bs = document.querySelectorAll('nav button');
   for(var j=0;j<bs.length;j++) bs[j].classList.toggle('on', bs[j].getAttribute('data-tab')===id);
   if(id==='t-zone') setTimeout(initAdminMap, 150);
+  if(id==='t-menu'){ renderCatsChips(); renderProds(); }
 }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 
@@ -701,7 +745,7 @@ function renderOrders(){
 function openOrder(id){
   var o=S.orders.filter(function(x){return x.id===id;})[0]; if(!o) return;
   var items='';
-  (o.items||[]).forEach(function(i){ items+='<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)"><span>'+esc(locName(i))+' &#215; '+i.qty+'</span><span>'+money(i.price*i.qty)+'</span></div>'; });
+  (o.items||[]).forEach(function(i){ var sz=i.sizeName?' <span style="color:var(--muted)">('+esc(i.sizeName)+')</span>':''; items+='<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)"><span>'+esc(locName(i))+sz+' &#215; '+i.qty+'</span><span>'+money(i.price*i.qty)+'</span></div>'; });
   var loc=o.location?'<a class="btn ghost sm" target="_blank" href="https://www.google.com/maps?q='+o.location.lat+','+o.location.lng+'">'+t('openMap')+'</a>':'—';
   var flow=FLOW[o.type]||FLOW.pickup;
   var btns='';
@@ -751,36 +795,81 @@ function setEta(id,m){
 }
 
 /* CATEGORIES */
+/* MENU (categories + products merged) */
+var CUR_CAT = null;
+
 function renderCats(){
+  // القائمة القديمة (مخفية للتوافق)
   var box=document.getElementById('catsBox');
-  if(!S.categories.length){ box.innerHTML='<div class="empty">'+t('noData')+'</div>'; return; }
+  if(box){
+    var oh='';
+    S.categories.forEach(function(c){
+      oh+='<div class="item"><b>'+esc(locName(c))+'</b></div>';
+    });
+    box.innerHTML=oh;
+  }
+  renderCatsChips();
+  renderProds();
+}
+
+function renderCatsChips(){
+  var box=document.getElementById('catsChips');
+  if(!box) return;
+  if(!S.categories.length){ box.innerHTML='<div class="empty" style="padding:20px">'+t('noData')+'</div>'; document.getElementById('menuCatTitle').textContent='—'; return; }
+  // لو ما فيه تصنيف مختار، اختر الأول
+  if(!CUR_CAT || !S.categories.filter(function(c){return c.id===CUR_CAT;}).length){
+    CUR_CAT = S.categories[0].id;
+  }
   var h='';
   S.categories.forEach(function(c){
-    h+='<div class="item"><div class="i-main"><b>'+esc(locName(c))+(c.hidden?' <span class="pill hiddenp">'+t('hide')+'</span>':'')+'</b>'+
-      '<small>'+esc(c.name_en||'')+' &#183; '+t('order')+': '+(c.order||0)+'</small></div>'+
-      '<button class="btn ghost sm" onclick="editCat(\''+c.id+'\')">'+t('edit')+'</button>'+
-      '<button class="btn ghost sm" onclick="toggleCat(\''+c.id+'\','+(c.hidden?'false':'true')+')">'+(c.hidden?t('show'):t('hide'))+'</button>'+
-      '<button class="btn danger sm" onclick="delCat(\''+c.id+'\')">'+t('del')+'</button></div>';
+    h+='<button class="catchip '+(c.id===CUR_CAT?'on':'')+'" onclick="pickAdminCat(\''+c.id+'\')">'+
+       esc(locName(c))+(c.hidden?' <span style="opacity:.6">('+t('hide')+')</span>':'')+'</button>';
   });
   box.innerHTML=h;
+  var cur=S.categories.filter(function(c){return c.id===CUR_CAT;})[0];
+  document.getElementById('menuCatTitle').textContent = cur?locName(cur):'—';
+}
+function pickAdminCat(id){ CUR_CAT=id; renderCatsChips(); renderProds(); }
+
+function editCurrentCat(){ if(CUR_CAT) openCatModal(CUR_CAT); }
+function delCurrentCat(){
+  if(!CUR_CAT) return;
+  var prods=S.products.filter(function(p){return p.categoryId===CUR_CAT;});
+  if(prods.length){ toast(LANG==='ar'?'احذف منتجات التصنيف أولاً':'Delete its products first'); return; }
+  if(!confirm(t('confirmDel'))) return;
+  db.collection('categories').doc(CUR_CAT).delete().then(function(){ CUR_CAT=null; toast(t('deleted')); });
+}
+
+function openCatModal(id){
+  document.getElementById('cAr').value='';
+  document.getElementById('cEn').value='';
+  document.getElementById('cOrder').value=S.categories.length+1;
+  document.getElementById('cHidden').checked=false;
+  document.getElementById('cId').value='';
+  document.getElementById('catModalTitle').textContent=t('addCategory');
+  if(id){
+    var c=S.categories.filter(function(x){return x.id===id;})[0];
+    if(c){
+      document.getElementById('cAr').value=c.name_ar||'';
+      document.getElementById('cEn').value=c.name_en||'';
+      document.getElementById('cOrder').value=c.order||1;
+      document.getElementById('cHidden').checked=!!c.hidden;
+      document.getElementById('cId').value=id;
+      document.getElementById('catModalTitle').textContent=t('edit');
+    }
+  }
+  document.getElementById('mCat').classList.add('open');
 }
 function saveCat(){
   var ar=document.getElementById('cAr').value.trim();
   if(!ar){ toast(t('reqFields')); return; }
-  var data={ name_ar:ar, name_en:document.getElementById('cEn').value.trim(), order:Number(document.getElementById('cOrder').value||1) };
+  var data={ name_ar:ar, name_en:document.getElementById('cEn').value.trim(),
+    order:Number(document.getElementById('cOrder').value||1),
+    hidden:document.getElementById('cHidden').checked };
   var id=document.getElementById('cId').value;
-  var p=id?db.collection('categories').doc(id).set(data,{merge:true}):db.collection('categories').add(Object.assign({hidden:false},data));
-  p.then(function(){ toast(t('saved')); ['cAr','cEn','cId'].forEach(function(k){document.getElementById(k).value='';}); document.getElementById('cOrder').value=1; });
+  var p=id?db.collection('categories').doc(id).set(data,{merge:true}):db.collection('categories').add(data);
+  p.then(function(ref){ if(!id && ref) CUR_CAT=ref.id; toast(t('saved')); closeModal('mCat'); });
 }
-function editCat(id){
-  var c=S.categories.filter(function(x){return x.id===id;})[0]; if(!c) return;
-  document.getElementById('cAr').value=c.name_ar||'';
-  document.getElementById('cEn').value=c.name_en||'';
-  document.getElementById('cOrder').value=c.order||1;
-  document.getElementById('cId').value=id; window.scrollTo(0,0);
-}
-function toggleCat(id,v){ db.collection('categories').doc(id).set({hidden:v},{merge:true}); }
-function delCat(id){ if(!confirm(t('confirmDel')))return; db.collection('categories').doc(id).delete().then(function(){toast(t('deleted'));}); }
 function fillCatSelect(){
   var s=document.getElementById('pCat'); var h='';
   S.categories.forEach(function(c){ h+='<option value="'+c.id+'">'+esc(locName(c))+'</option>'; });
@@ -788,26 +877,76 @@ function fillCatSelect(){
 }
 
 /* PRODUCTS */
+function priceLabel(p){
+  if(p.pricingType === 'sizes' && p.sizes && p.sizes.length){
+    var prices = p.sizes.map(function(s){ return Number(s.price); });
+    var mn = Math.min.apply(null, prices), mx = Math.max.apply(null, prices);
+    return mn === mx ? money(mn) : money(mn) + ' - ' + money(mx);
+  }
+  return money(p.price);
+}
 function renderProds(){
   var box=document.getElementById('prodsBox');
-  if(!S.products.length){ box.innerHTML='<div class="empty">'+t('noData')+'</div>'; return; }
+  if(!box) return;
+  var addBtn=document.getElementById('btnAddProd');
+  var editB=document.getElementById('btnEditCat'), delB=document.getElementById('btnDelCat');
+  if(!CUR_CAT){
+    if(addBtn) addBtn.classList.add('hidden');
+    if(editB) editB.classList.add('hidden');
+    if(delB) delB.classList.add('hidden');
+    box.innerHTML='<div class="empty">'+t('noData')+'</div>'; return;
+  }
+  if(addBtn) addBtn.classList.remove('hidden');
+  if(editB) editB.classList.remove('hidden');
+  if(delB) delB.classList.remove('hidden');
+  var list=S.products.filter(function(p){return p.categoryId===CUR_CAT;});
+  if(!list.length){ box.innerHTML='<div class="empty">'+(LANG==='ar'?'لا توجد منتجات في هذا التصنيف':'No products in this category')+'</div>'; return; }
   var h='';
-  S.products.forEach(function(p){
-    var cat=S.categories.filter(function(c){return c.id===p.categoryId;})[0];
+  list.forEach(function(p){
     var img=p.image?'<img src="'+esc(p.image)+'" alt="">':'<div class="thumb"></div>';
     h+='<div class="item">'+img+'<div class="i-main"><b>'+esc(locName(p))+(p.hidden?' <span class="pill hiddenp">'+t('hide')+'</span>':'')+'</b>'+
-      '<small>'+(cat?esc(locName(cat)):'—')+' &#183; '+money(p.price)+'</small></div>'+
+      '<small>'+priceLabel(p)+(p.pricingType==='sizes'?' &#183; '+(p.sizes?p.sizes.length:0)+' '+(LANG==='ar'?'أحجام':'sizes'):'')+'</small></div>'+
       '<button class="btn ghost sm" onclick="openProdModal(\''+p.id+'\')">'+t('edit')+'</button>'+
       '<button class="btn ghost sm" onclick="toggleProd(\''+p.id+'\','+(p.hidden?'false':'true')+')">'+(p.hidden?t('show'):t('hide'))+'</button>'+
       '<button class="btn danger sm" onclick="delProd(\''+p.id+'\')">'+t('del')+'</button></div>';
   });
   box.innerHTML=h;
 }
+
+var PRICING = 'fixed';
+var SIZES = [];
+function setPricing(mode){
+  PRICING = mode;
+  document.getElementById('ptFixed').classList.toggle('on', mode==='fixed');
+  document.getElementById('ptSizes').classList.toggle('on', mode==='sizes');
+  document.getElementById('fixedBox').classList.toggle('hidden', mode!=='fixed');
+  document.getElementById('sizesBox').classList.toggle('hidden', mode!=='sizes');
+  if(mode==='sizes' && !SIZES.length) addSizeRow();
+}
+function addSizeRow(){
+  if(SIZES.length >= 4){ toast('4'); return; }
+  SIZES.push({ name_ar:'', name_en:'', price:'' });
+  drawSizes();
+}
+function rmSizeRow(i){ SIZES.splice(i,1); drawSizes(); }
+function drawSizes(){
+  var h='';
+  SIZES.forEach(function(s,i){
+    h+='<div class="row" style="gap:8px;margin-bottom:8px;align-items:flex-end">'+
+      '<div style="flex:1"><input class="field" style="margin:0" placeholder="'+t('sizeNameAr')+'" value="'+esc(s.name_ar)+'" oninput="SIZES['+i+'].name_ar=this.value"></div>'+
+      '<div style="flex:1"><input class="field" style="margin:0" placeholder="'+t('sizeNameEn')+'" value="'+esc(s.name_en)+'" oninput="SIZES['+i+'].name_en=this.value"></div>'+
+      '<div style="width:80px"><input class="field" style="margin:0" type="number" step="0.5" placeholder="'+t('price')+'" value="'+esc(s.price)+'" oninput="SIZES['+i+'].price=this.value"></div>'+
+      '<button type="button" class="btn danger sm" onclick="rmSizeRow('+i+')">&#215;</button></div>';
+  });
+  document.getElementById('sizesRows').innerHTML=h;
+}
 function openProdModal(id){
-  fillCatSelect(); S.prodImages={main:'',extra:[]};
+  fillCatSelect(); S.prodImages={main:'',extra:[]}; SIZES=[];
   document.getElementById('prodErr').classList.add('hidden');
   ['pAr','pEn','pdAr','pdEn','pPrice'].forEach(function(k){document.getElementById(k).value='';});
   document.getElementById('pOrder').value=1; document.getElementById('pId').value='';
+  setPricing('fixed');
+  if(CUR_CAT){ document.getElementById('pCat').value=CUR_CAT; }  // التصنيف الحالي افتراضياً
   if(id){
     var p=S.products.filter(function(x){return x.id===id;})[0];
     if(p){
@@ -820,9 +959,13 @@ function openProdModal(id){
       document.getElementById('pCat').value=p.categoryId||'';
       document.getElementById('pId').value=id;
       S.prodImages={ main:p.image||'', extra:(p.images||[]).slice() };
+      if(p.pricingType==='sizes' && p.sizes && p.sizes.length){
+        SIZES = p.sizes.map(function(s){ return { name_ar:s.name_ar||'', name_en:s.name_en||'', price:s.price }; });
+        setPricing('sizes');
+      } else { setPricing('fixed'); }
     }
   }
-  drawPrev(); document.getElementById('mProd').classList.add('open');
+  drawPrev(); drawSizes(); document.getElementById('mProd').classList.add('open');
 }
 function drawPrev(){
   document.getElementById('mainPrev').innerHTML=S.prodImages.main?'<div class="box"><img src="'+esc(S.prodImages.main)+'"><button class="x" onclick="rmImg(\'main\',0)">&#215;</button></div>':'';
@@ -845,13 +988,28 @@ function uploadImg(input,kind){
 }
 function saveProd(){
   var ar=document.getElementById('pAr').value.trim();
-  var price=Number(document.getElementById('pPrice').value);
   var cat=document.getElementById('pCat').value;
-  if(!ar||!price||!cat){ toast(t('reqFields')); return; }
+  if(!ar||!cat){ toast(t('reqFields')); return; }
+
   var data={ name_ar:ar, name_en:document.getElementById('pEn').value.trim(),
     desc_ar:document.getElementById('pdAr').value.trim(), desc_en:document.getElementById('pdEn').value.trim(),
-    price:price, categoryId:cat, order:Number(document.getElementById('pOrder').value||1),
-    image:S.prodImages.main||'', images:S.prodImages.extra||[] };
+    categoryId:cat, order:Number(document.getElementById('pOrder').value||1),
+    image:S.prodImages.main||'', images:S.prodImages.extra||[],
+    pricingType: PRICING };
+
+  if(PRICING === 'sizes'){
+    var clean = SIZES.filter(function(s){ return (s.name_ar||s.name_en) && Number(s.price)>0; })
+                     .map(function(s){ return { name_ar:s.name_ar.trim(), name_en:(s.name_en||'').trim(), price:Number(s.price) }; });
+    if(!clean.length){ toast(t('needSize')); return; }
+    data.sizes = clean.slice(0,4);
+    data.price = Math.min.apply(null, clean.map(function(s){return s.price;})); // سعر مرجعي
+  } else {
+    var price=Number(document.getElementById('pPrice').value);
+    if(!price){ toast(t('reqFields')); return; }
+    data.price = price;
+    data.sizes = [];
+  }
+
   var id=document.getElementById('pId').value;
   var p=id?db.collection('products').doc(id).set(data,{merge:true}):db.collection('products').add(Object.assign({hidden:false},data));
   p.then(function(){ toast(t('saved')); closeModal('mProd'); });
@@ -926,38 +1084,47 @@ function renderReviews(){
   box.innerHTML=h+'</tbody></table>';
 }
 
-/* ZONE */
-var mapsLoaded=false;
-function loadMaps(cb){
-  if(mapsLoaded){ cb(); return; }
-  var s=document.createElement('script');
-  s.src='https://maps.googleapis.com/maps/api/js?key='+CONFIG.mapsApiKey;
-  s.onload=function(){ mapsLoaded=true; cb(); };
-  s.onerror=function(){ toast('Google Maps failed to load'); };
-  document.head.appendChild(s);
-}
+/* ZONE — Leaflet (بدون مفتاح) */
 function initAdminMap(){
-  loadMaps(function(){
-    if(!S.map){
-      var center=S.polygon.length?S.polygon[0]:CONFIG.defaultCenter;
-      S.map=new google.maps.Map(document.getElementById('mapAdmin'),{ center:center, zoom:13, streetViewControl:false, styles:[{featureType:'poi',stylers:[{visibility:'off'}]}] });
-      S.map.addListener('click',function(e){ S.polygon.push({lat:e.latLng.lat(),lng:e.latLng.lng()}); drawPoly(); });
-    }
-    google.maps.event.trigger(S.map,'resize'); drawPoly();
-  });
+  if(typeof L === 'undefined'){ toast('Map library not loaded'); return; }
+  if(!S.map){
+    var center=S.polygon.length?[S.polygon[0].lat,S.polygon[0].lng]:[CONFIG.defaultCenter.lat,CONFIG.defaultCenter.lng];
+    S.map=L.map('mapAdmin',{ zoomControl:true }).setView(center, 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      maxZoom:19, attribution:'© OpenStreetMap'
+    }).addTo(S.map);
+    // علامة موقع المحل
+    L.marker([CONFIG.defaultCenter.lat,CONFIG.defaultCenter.lng],{
+      icon: L.divIcon({ className:'', html:'<div style="font-size:26px">&#127970;</div>', iconSize:[26,26], iconAnchor:[13,26] })
+    }).addTo(S.map);
+    S.map.on('click', function(e){
+      if(S.polygon.length >= 4){ toast('4 نقاط كحد أقصى — امسح لإعادة الرسم'); return; }
+      S.polygon.push({ lat:e.latlng.lat, lng:e.latlng.lng });
+      drawPoly();
+    });
+  }
+  setTimeout(function(){ S.map.invalidateSize(); }, 200);
+  drawPoly();
 }
 function drawPoly(){
   if(!S.map)return;
-  S.markers.forEach(function(m){m.setMap(null);}); S.markers=[];
-  if(S.polyShape) S.polyShape.setMap(null);
+  S.markers.forEach(function(m){ S.map.removeLayer(m); }); S.markers=[];
+  if(S.polyShape){ S.map.removeLayer(S.polyShape); S.polyShape=null; }
   S.polygon.forEach(function(p,i){
-    var m=new google.maps.Marker({ position:p, map:S.map, draggable:true, label:String(i+1) });
-    m.addListener('dragend',function(e){ S.polygon[i]={lat:e.latLng.lat(),lng:e.latLng.lng()}; drawPoly(); });
-    m.addListener('dblclick',function(){ S.polygon.splice(i,1); drawPoly(); });
-    S.markers.push(m);
+    var mk=L.marker([p.lat,p.lng],{
+      draggable:true,
+      icon: L.divIcon({ className:'', html:'<div style="background:#3F4A32;color:#fff;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.4)">'+(i+1)+'</div>', iconSize:[26,26], iconAnchor:[13,13] })
+    }).addTo(S.map);
+    mk.on('dragend', function(e){ var ll=e.target.getLatLng(); S.polygon[i]={lat:ll.lat,lng:ll.lng}; drawPoly(); });
+    mk.on('dblclick', function(){ S.polygon.splice(i,1); drawPoly(); });
+    S.markers.push(mk);
   });
-  if(S.polygon.length>=3) S.polyShape=new google.maps.Polygon({ paths:S.polygon, map:S.map, strokeColor:'#3F4A32', strokeWeight:2, fillColor:'#3F4A32', fillOpacity:.14 });
-  document.getElementById('ptCount').textContent=S.polygon.length+' / 3+';
+  if(S.polygon.length>=3){
+    S.polyShape=L.polygon(S.polygon.map(function(p){return [p.lat,p.lng];}),{
+      color:'#3F4A32', weight:2, fillColor:'#3F4A32', fillOpacity:.14
+    }).addTo(S.map);
+  }
+  document.getElementById('ptCount').textContent=S.polygon.length+' / 4';
 }
 function undoPoint(){ S.polygon.pop(); drawPoly(); }
 function clearPoly(){ S.polygon=[]; drawPoly(); }
