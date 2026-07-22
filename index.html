@@ -99,6 +99,9 @@ th{color:var(--muted);font-weight:500;font-size:12.5px}
 .chatbar input[disabled]{background:var(--secondary-light)}
 .chatbar button{width:44px;height:44px;border-radius:50%;background:var(--primary);color:#fff;display:grid;place-items:center}
 .readonly{text-align:center;padding:10px;color:var(--muted);font-size:13px}
+.chatlang-admin{display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.chatlang-admin button{padding:5px 14px;border-radius:16px;background:var(--secondary-light);font-size:12px;color:var(--primary);border:none;cursor:pointer}
+.chatlang-admin button.on{background:var(--primary);color:#fff}
 
 #login{display:grid;place-items:center;min-height:100vh;padding:20px}
 .loginbox{width:100%;max-width:380px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px;text-align:center}
@@ -129,6 +132,18 @@ th{color:var(--muted);font-weight:500;font-size:12.5px}
 .cats-admin{display:flex;gap:8px;flex-wrap:wrap}
 .catchip{padding:9px 18px;border-radius:22px;background:var(--secondary-light);color:var(--primary);font-size:14px;font-weight:500;transition:.15s}
 .catchip.on{background:var(--primary);color:#fff}
+.order-alert{position:fixed;inset:0;z-index:400;background:rgba(45,74,50,.97);display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center}
+.order-alert.show{display:flex}
+.oa-bell{font-size:60px;animation:ring .6s infinite}
+@keyframes ring{0%,100%{transform:rotate(-14deg)}50%{transform:rotate(14deg)}}
+.oa-title{font-size:26px;font-weight:800;color:#fff;margin:14px 0 18px}
+.oa-card{background:rgba(255,255,255,.1);border-radius:18px;padding:20px;width:100%;max-width:420px;color:#fff;margin-bottom:22px}
+.oa-card .alert-no{font-size:30px;font-weight:800;color:var(--secondary)}
+.oa-card .alert-cust{font-size:15px;opacity:.9;margin:4px 0}
+.oa-card .alert-type{font-size:14px;opacity:.75;margin-bottom:12px}
+.oa-card .alert-items{text-align:start;border-top:1px solid rgba(255,255,255,.2);padding-top:10px}
+.oa-btn{background:var(--secondary);color:var(--primary-dark);border:none;border-radius:14px;padding:18px 32px;font-family:inherit;font-size:17px;font-weight:800;cursor:pointer;width:100%;max-width:420px}
+.oa-btn:active{transform:scale(.98)}
 </style>
 </head>
 <body>
@@ -408,6 +423,12 @@ th{color:var(--muted);font-weight:500;font-size:12.5px}
   <div class="modal-bg" onclick="closeChat()"></div>
   <div class="modal-card">
     <h3 id="chatTitle">—</h3>
+    <div class="chatlang-admin" id="admChatLang">
+      <span style="font-size:12px;color:var(--muted)" data-i="chatLangLbl">لغتك:</span>
+      <button onclick="setAdmChatLang('ar')" data-aclang="ar">عربي</button>
+      <button onclick="setAdmChatLang('en')" data-aclang="en">EN</button>
+      <button onclick="setAdmChatLang('bn')" data-aclang="bn">বাংলা</button>
+    </div>
     <div id="adminChatBody"></div>
     <div id="chatReadonly" class="readonly hidden" data-i="chatClosedLbl">أُغلقت المحادثة</div>
     <div class="chatbar" id="adminChatBar">
@@ -415,6 +436,14 @@ th{color:var(--muted);font-weight:500;font-size:12.5px}
       <button onclick="adminSend()">&#10148;</button>
     </div>
   </div>
+</div>
+
+<!-- NEW ORDER FULLSCREEN ALERT -->
+<div id="newOrderAlert" class="order-alert">
+  <div class="oa-bell">&#128276;</div>
+  <div class="oa-title" data-i="newOrderTitle">طلب جديد!</div>
+  <div class="oa-card" id="alertContent"></div>
+  <button class="oa-btn" onclick="acceptNewOrder()" data-i="acceptStart">استلام الطلب وبدء التجهيز</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -469,7 +498,7 @@ var I18N = {
     st_received:"تم استلام الطلب",st_preparing:"جاري تجهيز الطلب",st_ready:"جاهز للاستلام",
     st_out:"خرج للتوصيل",st_delivered:"تم التسليم",loginErr:"بيانات الدخول غير صحيحة",
     reqFields:"املأ الحقول المطلوبة",deliveryFee:"رسوم التوصيل",sar:"ر.س",uploading:"جاري الرفع...",
-    pricingType:"نوع التسعير",fixedPrice:"سعر ثابت",bySizes:"حسب الأحجام",sizesLbl:"الأحجام (حتى 4 — الاسم عربي/إنجليزي + السعر)",addSize:"+ إضافة حجم",sizeNameAr:"اسم الحجم (عربي)",sizeNameEn:"Size (EN)",needSize:"أضف حجماً واحداً على الأقل",menuMgmt:"القائمة",cash:"الدفع عند الاستلام",cardLbl:"بطاقة",unpaid:"غير مدفوع",
+    pricingType:"نوع التسعير",fixedPrice:"سعر ثابت",bySizes:"حسب الأحجام",sizesLbl:"الأحجام (حتى 4 — الاسم عربي/إنجليزي + السعر)",addSize:"+ إضافة حجم",sizeNameAr:"اسم الحجم (عربي)",sizeNameEn:"Size (EN)",needSize:"أضف حجماً واحداً على الأقل",menuMgmt:"القائمة",cash:"الدفع عند الاستلام",cardLbl:"بطاقة",unpaid:"غير مدفوع",newOrderTitle:"طلب جديد!",acceptStart:"استلام الطلب وبدء التجهيز",chatLangLbl:"لغتك:",
     chatClosedLbl:"أُغلقت المحادثة (للقراءة فقط)",comment:"التعليق",stars:"النجوم",date:"التاريخ",
     s_totalOrders:"إجمالي الطلبات",s_revenue:"إجمالي الإيرادات",s_completed:"الطلبات المكتملة",
     s_cancelled:"الطلبات الملغاة",s_avgValue:"متوسط قيمة الطلب",s_avgPrep:"متوسط وقت التجهيز",
@@ -495,7 +524,7 @@ var I18N = {
     st_received:"Order received",st_preparing:"Preparing",st_ready:"Ready for pickup",
     st_out:"Out for delivery",st_delivered:"Delivered",loginErr:"Invalid credentials",
     reqFields:"Fill the required fields",deliveryFee:"Delivery fee",sar:"SAR",uploading:"Uploading...",
-    pricingType:"Pricing type",fixedPrice:"Fixed price",bySizes:"By sizes",sizesLbl:"Sizes (up to 4 — name AR/EN + price)",addSize:"+ Add size",sizeNameAr:"Size (AR)",sizeNameEn:"Size (EN)",needSize:"Add at least one size",menuMgmt:"Menu",cash:"Pay on receipt",cardLbl:"Card",unpaid:"Unpaid",
+    pricingType:"Pricing type",fixedPrice:"Fixed price",bySizes:"By sizes",sizesLbl:"Sizes (up to 4 — name AR/EN + price)",addSize:"+ Add size",sizeNameAr:"Size (AR)",sizeNameEn:"Size (EN)",needSize:"Add at least one size",menuMgmt:"Menu",cash:"Pay on receipt",cardLbl:"Card",unpaid:"Unpaid",newOrderTitle:"New order!",acceptStart:"Accept & start preparing",chatLangLbl:"Your language:",
     chatClosedLbl:"Chat closed (read only)",comment:"Comment",stars:"Stars",date:"Date",
     s_totalOrders:"Total orders",s_revenue:"Total revenue",s_completed:"Completed",
     s_cancelled:"Cancelled",s_avgValue:"Avg order value",s_avgPrep:"Avg prep time",
@@ -607,10 +636,10 @@ function startListeners(){
     renderBanners();
   });
   db.collection('orders').orderBy('createdAt','desc').limit(500).onSnapshot(function(s){
-    var arr=[], fresh=false;
-    s.forEach(function(d){ var o=d.data(); o.id=d.id; arr.push(o); if(!S.firstLoad && !S.seen[d.id]) fresh=true; S.seen[d.id]=true; });
+    var arr=[], freshId=null;
+    s.forEach(function(d){ var o=d.data(); o.id=d.id; arr.push(o); if(!S.firstLoad && !S.seen[d.id]){ freshId=d.id; } S.seen[d.id]=true; });
     S.orders=arr;
-    if(fresh) notifyNew();
+    if(freshId){ triggerNewOrderAlert(freshId); }
     S.firstLoad=false;
     renderOrders(); renderDash(); renderChats(); renderReviews(); refreshOrderBadge();
   });
@@ -624,19 +653,67 @@ function startListeners(){
   });
 }
 
-function notifyNew(){
-  if(document.getElementById('soundOn').checked) beep();
-  if(window.Notification && Notification.permission==='granted') new Notification(t('orders'), { body:t('s_daily') });
-  toast(t('orders'));
+var ALARM_TIMER = null;
+var ALARM_ORDER = null;
+
+function triggerNewOrderAlert(orderId){
+  var o = S.orders.filter(function(x){return x.id===orderId;})[0];
+  if(!o) return;
+  ALARM_ORDER = orderId;
+  var box = document.getElementById('newOrderAlert');
+  var items = (o.items||[]).map(function(i){
+    var sn=i.sizeName?' ('+esc(i.sizeName)+')':'';
+    return '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:15px"><span>'+esc(locName(i))+sn+' &#215; '+i.qty+'</span><span>'+money(i.price*i.qty)+'</span></div>';
+  }).join('');
+  document.getElementById('alertContent').innerHTML =
+    '<div class="alert-no">#'+esc(o.orderNo)+'</div>'+
+    '<div class="alert-cust">'+esc(o.customerName||'—')+' &#183; '+esc(o.customerPhone||'')+'</div>'+
+    '<div class="alert-type">'+t(o.type==='delivery'?'delivery':'pickup')+' &#183; '+payMethodLabel(o.paymentMethod)+'</div>'+
+    '<div class="alert-items">'+items+
+      '<div style="display:flex;justify-content:space-between;padding:10px 0 0;margin-top:6px;border-top:1px solid rgba(255,255,255,.2);font-weight:700;font-size:17px"><span>'+t('total')+'</span><span>'+money(o.total)+'</span></div>'+
+    '</div>';
+  box.classList.add('show');
+  startAlarm();
+  if(window.Notification && Notification.permission==='granted'){
+    try{ new Notification(t('newOrderTitle'), { body:'#'+o.orderNo+' — '+money(o.total), requireInteraction:true }); }catch(e){}
+  }
+}
+function startAlarm(){
+  stopAlarm();
+  beep();
+  if(navigator.vibrate) navigator.vibrate([400,200,400]);
+  ALARM_TIMER = setInterval(function(){
+    if(document.getElementById('soundOn').checked) beep();
+    if(navigator.vibrate) navigator.vibrate([300,150,300]);
+  }, 2000);
+}
+function stopAlarm(){
+  if(ALARM_TIMER){ clearInterval(ALARM_TIMER); ALARM_TIMER=null; }
+  if(navigator.vibrate) navigator.vibrate(0);
+}
+// قبول الطلب من شاشة التنبيه — إجباري (استلام/جاري التجهيز)
+function acceptNewOrder(){
+  var id = ALARM_ORDER;
+  stopAlarm();
+  document.getElementById('newOrderAlert').classList.remove('show');
+  if(!id) return;
+  var o = S.orders.filter(function(x){return x.id===id;})[0];
+  if(o){
+    // الحالة الأولى بعد القبول: جاري التجهيز (للاستلام) أو تم الاستلام (للتوصيل)
+    var first = o.type==='delivery' ? 'received' : 'preparing';
+    setStatus(id, first);
+  }
+  ALARM_ORDER = null;
+  tab('t-orders');
 }
 function beep(){
   try{
     var ctx=new (window.AudioContext||window.webkitAudioContext)();
     [0,.18,.36].forEach(function(off){
       var o=ctx.createOscillator(), g=ctx.createGain();
-      o.type='sine'; o.frequency.value=880; o.connect(g); g.connect(ctx.destination);
+      o.type='square'; o.frequency.value=920; o.connect(g); g.connect(ctx.destination);
       g.gain.setValueAtTime(.001,ctx.currentTime+off);
-      g.gain.exponentialRampToValueAtTime(.35,ctx.currentTime+off+.03);
+      g.gain.exponentialRampToValueAtTime(.45,ctx.currentTime+off+.03);
       g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+off+.15);
       o.start(ctx.currentTime+off); o.stop(ctx.currentTime+off+.17);
     });
@@ -1164,40 +1241,74 @@ function renderChats(){
   });
   box.innerHTML=h;
 }
+var ADM_CHAT_LANG = localStorage.getItem('nsm_adm_chatlang') || 'ar';
+var ADM_CHAT_SNAP = null;
+function setAdmChatLang(l){
+  ADM_CHAT_LANG = l; localStorage.setItem('nsm_adm_chatlang', l);
+  markAdmChatLang();
+  if(ADM_CHAT_SNAP) renderAdmChat(ADM_CHAT_SNAP);
+}
+function markAdmChatLang(){
+  var b=document.querySelectorAll('[data-aclang]');
+  for(var i=0;i<b.length;i++) b[i].classList.toggle('on', b[i].getAttribute('data-aclang')===ADM_CHAT_LANG);
+}
+function admChatBeep(){
+  try{
+    var ctx=new (window.AudioContext||window.webkitAudioContext)();
+    var o=ctx.createOscillator(), g=ctx.createGain();
+    o.type='sine'; o.frequency.value=760; o.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(.001,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.3,ctx.currentTime+.03);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.25);
+    o.start(); o.stop(ctx.currentTime+.27);
+  }catch(e){}
+  if(navigator.vibrate) navigator.vibrate(200);
+}
+function renderAdmChat(snap){
+  var h='';
+  snap.forEach(function(d){
+    var m=d.data();
+    var mine=m.sender==='admin';
+    var shown=(m.translations&&m.translations[ADM_CHAT_LANG])||m.text;
+    var showOrig=shown!==m.text;
+    var ts=m.createdAt&&m.createdAt.toDate?m.createdAt.toDate().toLocaleTimeString(LANG==='ar'?'ar-SA':'en-GB',{hour:'2-digit',minute:'2-digit'}):'';
+    h+='<div class="msg '+(mine?'me':'them')+'">'+esc(shown)+(showOrig?'<span class="orig">'+esc(m.text)+'</span>':'')+'<time>'+ts+'</time></div>';
+  });
+  var box=document.getElementById('adminChatBody'); box.innerHTML=h; box.scrollTop=box.scrollHeight;
+}
 function openChatFor(orderId){
   var o=S.orders.filter(function(x){return x.id===orderId;})[0];
   S.chatOrder=o||{ id:orderId };
   document.getElementById('chatTitle').textContent='#'+(o?o.orderNo:'')+' — '+(o?(o.customerName||o.customerPhone||''):'');
   document.getElementById('mChat').classList.add('open');
+  markAdmChatLang();
   db.collection('orders').doc(orderId).set({unreadAdmin:0},{merge:true});
   var closed=chatIsClosed(o);
   document.getElementById('adminChatBar').classList.toggle('hidden',closed);
   document.getElementById('chatReadonly').classList.toggle('hidden',!closed);
   if(S.unsubChat) S.unsubChat();
+  ADM_CHAT_SNAP=null;
   S.unsubChat=db.collection('chats').doc(orderId).collection('messages').orderBy('createdAt').onSnapshot(function(snap){
-    var h='';
-    snap.forEach(function(d){
-      var m=d.data();
-      var mine=m.sender==='admin';
-      var shown=(m.translations&&m.translations[LANG])||m.text;
-      var showOrig=shown!==m.text;
-      var ts=m.createdAt&&m.createdAt.toDate?m.createdAt.toDate().toLocaleTimeString(LANG==='ar'?'ar-SA':'en-GB',{hour:'2-digit',minute:'2-digit'}):'';
-      h+='<div class="msg '+(mine?'me':'them')+'">'+esc(shown)+(showOrig?'<span class="orig">'+esc(m.text)+'</span>':'')+'<time>'+ts+'</time></div>';
-    });
-    var box=document.getElementById('adminChatBody'); box.innerHTML=h; box.scrollTop=box.scrollHeight;
+    var hadNew=false;
+    if(ADM_CHAT_SNAP){
+      snap.docChanges().forEach(function(ch){ if(ch.type==='added'){ var m=ch.doc.data(); if(m.sender==='customer') hadNew=true; } });
+    }
+    ADM_CHAT_SNAP=snap;
+    renderAdmChat(snap);
+    if(hadNew) admChatBeep();
   });
 }
-function closeChat(){ if(S.unsubChat){S.unsubChat();S.unsubChat=null;} closeModal('mChat'); }
+function closeChat(){ if(S.unsubChat){S.unsubChat();S.unsubChat=null;} ADM_CHAT_SNAP=null; closeModal('mChat'); }
 function adminSend(){
   var el=document.getElementById('adminChatInput'); var txt=el.value.trim();
   if(!txt||!S.chatOrder)return;
   if(chatIsClosed(S.chatOrder)){ toast(t('chatClosedLbl')); return; }
   el.value='';
   var oid=S.chatOrder.id;
-  db.collection('chats').doc(oid).collection('messages').add({ text:txt, lang:LANG, sender:'admin', translations:{}, createdAt:firebase.firestore.FieldValue.serverTimestamp() })
+  db.collection('chats').doc(oid).collection('messages').add({ text:txt, lang:ADM_CHAT_LANG, sender:'admin', translations:{}, createdAt:firebase.firestore.FieldValue.serverTimestamp() })
     .then(function(ref){
       db.collection('orders').doc(oid).set({ unreadCustomer:firebase.firestore.FieldValue.increment(1), lastMessage:txt, lastMessageAt:firebase.firestore.FieldValue.serverTimestamp() },{merge:true});
-      translateAll(txt,LANG).then(function(tr){ ref.set({translations:tr},{merge:true}); });
+      translateAll(txt,ADM_CHAT_LANG).then(function(tr){ ref.set({translations:tr},{merge:true}); });
     });
 }
 function translateAll(text,from){
