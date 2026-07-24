@@ -144,6 +144,9 @@ th{color:var(--muted);font-weight:500;font-size:12.5px}
 .oa-card .alert-items{text-align:start;border-top:1px solid rgba(255,255,255,.2);padding-top:10px}
 .oa-btn{background:var(--secondary);color:var(--primary-dark);border:none;border-radius:14px;padding:18px 32px;font-family:inherit;font-size:17px;font-weight:800;cursor:pointer;width:100%;max-width:420px}
 .oa-btn:active{transform:scale(.98)}
+.eta-live{background:var(--secondary-light);color:var(--primary);border-radius:12px;padding:12px;text-align:center;font-size:15px;margin-bottom:14px}
+.eta-live .eta-num{font-size:22px;font-weight:800;letter-spacing:1px}
+.eta-live.over{background:#EAF2EC;color:var(--ok)}
 </style>
 </head>
 <body>
@@ -498,7 +501,7 @@ var I18N = {
     st_received:"تم استلام الطلب",st_preparing:"جاري تجهيز الطلب",st_ready:"جاهز للاستلام",
     st_out:"خرج للتوصيل",st_delivered:"تم التسليم",loginErr:"بيانات الدخول غير صحيحة",
     reqFields:"املأ الحقول المطلوبة",deliveryFee:"رسوم التوصيل",sar:"ر.س",uploading:"جاري الرفع...",
-    pricingType:"نوع التسعير",fixedPrice:"سعر ثابت",bySizes:"حسب الأحجام",sizesLbl:"الأحجام (حتى 4 — الاسم عربي/إنجليزي + السعر)",addSize:"+ إضافة حجم",sizeNameAr:"اسم الحجم (عربي)",sizeNameEn:"Size (EN)",needSize:"أضف حجماً واحداً على الأقل",menuMgmt:"القائمة",cash:"الدفع عند الاستلام",cardLbl:"بطاقة",unpaid:"غير مدفوع",newOrderTitle:"طلب جديد!",acceptStart:"استلام الطلب وبدء التجهيز",chatLangLbl:"لغتك:",
+    pricingType:"نوع التسعير",fixedPrice:"سعر ثابت",bySizes:"حسب الأحجام",sizesLbl:"الأحجام (حتى 4 — الاسم عربي/إنجليزي + السعر)",addSize:"+ إضافة حجم",sizeNameAr:"اسم الحجم (عربي)",sizeNameEn:"Size (EN)",needSize:"أضف حجماً واحداً على الأقل",menuMgmt:"القائمة",cash:"الدفع عند الاستلام",cardLbl:"بطاقة",unpaid:"غير مدفوع",newOrderTitle:"طلب جديد!",acceptStart:"استلام الطلب وبدء التجهيز",chatLangLbl:"لغتك:",etaCountdown:"الوقت المتبقي",orderNotes:"ملاحظات الطلب",housePhoto:"صورة المنزل",
     chatClosedLbl:"أُغلقت المحادثة (للقراءة فقط)",comment:"التعليق",stars:"النجوم",date:"التاريخ",
     s_totalOrders:"إجمالي الطلبات",s_revenue:"إجمالي الإيرادات",s_completed:"الطلبات المكتملة",
     s_cancelled:"الطلبات الملغاة",s_avgValue:"متوسط قيمة الطلب",s_avgPrep:"متوسط وقت التجهيز",
@@ -524,7 +527,7 @@ var I18N = {
     st_received:"Order received",st_preparing:"Preparing",st_ready:"Ready for pickup",
     st_out:"Out for delivery",st_delivered:"Delivered",loginErr:"Invalid credentials",
     reqFields:"Fill the required fields",deliveryFee:"Delivery fee",sar:"SAR",uploading:"Uploading...",
-    pricingType:"Pricing type",fixedPrice:"Fixed price",bySizes:"By sizes",sizesLbl:"Sizes (up to 4 — name AR/EN + price)",addSize:"+ Add size",sizeNameAr:"Size (AR)",sizeNameEn:"Size (EN)",needSize:"Add at least one size",menuMgmt:"Menu",cash:"Pay on receipt",cardLbl:"Card",unpaid:"Unpaid",newOrderTitle:"New order!",acceptStart:"Accept & start preparing",chatLangLbl:"Your language:",
+    pricingType:"Pricing type",fixedPrice:"Fixed price",bySizes:"By sizes",sizesLbl:"Sizes (up to 4 — name AR/EN + price)",addSize:"+ Add size",sizeNameAr:"Size (AR)",sizeNameEn:"Size (EN)",needSize:"Add at least one size",menuMgmt:"Menu",cash:"Pay on receipt",cardLbl:"Card",unpaid:"Unpaid",newOrderTitle:"New order!",acceptStart:"Accept & start preparing",chatLangLbl:"Your language:",etaCountdown:"Time left",orderNotes:"Order notes",housePhoto:"House photo",
     chatClosedLbl:"Chat closed (read only)",comment:"Comment",stars:"Stars",date:"Date",
     s_totalOrders:"Total orders",s_revenue:"Total revenue",s_completed:"Completed",
     s_cancelled:"Cancelled",s_avgValue:"Avg order value",s_avgPrep:"Avg prep time",
@@ -826,6 +829,24 @@ function payMethodLabel(m){
   if(m==='card') return t('cardLbl');
   return '—';
 }
+var ETA_TICK=null;
+function startEtaTick(){
+  if(ETA_TICK) clearInterval(ETA_TICK);
+  tickEta();
+  ETA_TICK=setInterval(tickEta, 1000);
+}
+function tickEta(){
+  var els=document.querySelectorAll('.eta-live');
+  if(!els.length){ if(ETA_TICK){clearInterval(ETA_TICK);ETA_TICK=null;} return; }
+  els.forEach(function(el){
+    var ends=Number(el.getAttribute('data-eta-ends'));
+    var numEl=el.querySelector('.eta-num');
+    var left=Math.max(0, ends-Date.now());
+    var mm=Math.floor(left/60000), ss=Math.floor((left%60000)/1000);
+    if(numEl) numEl.textContent=(mm<10?'0':'')+mm+':'+(ss<10?'0':'')+ss;
+    el.classList.toggle('over', left<=0);
+  });
+}
 function openOrder(id){
   var o=S.orders.filter(function(x){return x.id===id;})[0]; if(!o) return;
   var items='';
@@ -837,8 +858,12 @@ function openOrder(id){
   var eta='';
   ETA_OPTS.forEach(function(m){ eta+='<button class="'+(o.etaMinutes===m?'on':'')+'" onclick="setEta(\''+o.id+'\','+m+')">'+m+'</button>'; });
   var created=o.createdAt&&o.createdAt.toDate?o.createdAt.toDate().toLocaleString(LANG==='ar'?'ar-SA':'en-GB'):'';
+  var notesBlock = o.notes ? '<label style="margin-top:14px">'+t('orderNotes')+'</label><div style="background:var(--secondary-light);border-radius:10px;padding:12px">'+esc(o.notes)+'</div>' : '';
+  var houseBlock = o.housePhoto ? '<label style="margin-top:14px">'+t('housePhoto')+'</label><img src="'+esc(o.housePhoto)+'" style="width:100%;max-width:280px;border-radius:12px;cursor:pointer" onclick="window.open(this.src)">' : '';
+  var etaLive = (o.etaEndsAt && o.status!=='delivered') ? '<div class="eta-live" data-eta-ends="'+o.etaEndsAt+'"><span data-i="etaCountdown">الوقت المتبقي</span>: <b class="eta-num">--:--</b></div>' : '';
   document.getElementById('orderCard').innerHTML=
     '<h3>#'+esc(o.orderNo)+'</h3>'+
+    etaLive+
     '<div class="f2">'+
       '<div><label>'+t('customer')+'</label>'+esc(o.customerName||'—')+'</div>'+
       '<div><label>'+t('phone')+'</label><a href="tel:'+esc(o.customerPhone)+'">'+esc(o.customerPhone||'—')+'</a></div>'+
@@ -847,6 +872,7 @@ function openOrder(id){
       '<div><label>'+t('time')+'</label>'+created+'</div>'+
       '<div><label>'+t('location')+'</label>'+loc+'</div>'+
     '</div>'+
+    notesBlock + houseBlock +
     '<label style="margin-top:14px">'+t('itemsL')+'</label>'+items+
     (o.deliveryFee?'<div style="display:flex;justify-content:space-between;padding:7px 0"><span>'+t('deliveryFee')+'</span><span>'+money(o.deliveryFee)+'</span></div>':'')+
     '<div style="display:flex;justify-content:space-between;padding:11px 0;font-weight:700;font-size:17px"><span>'+t('total')+'</span><span>'+money(o.total)+'</span></div>'+
@@ -857,6 +883,7 @@ function openOrder(id){
       '<button class="btn" onclick="closeModal(\'mOrder\');openChatFor(\''+o.id+'\')">'+t('chats')+'</button>'+
     '</div>';
   document.getElementById('mOrder').classList.add('open');
+  startEtaTick();
 }
 function setStatus(id,st){
   var o=S.orders.filter(function(x){return x.id===id;})[0];
@@ -871,10 +898,11 @@ function setStatus(id,st){
   });
 }
 function setEta(id,m){
-  db.collection('orders').doc(id).set({ etaMinutes:m },{merge:true}).then(function(){
+  var endsAt = Date.now() + m*60000; // وقت الانتهاء المطلق = الآن + المدة
+  db.collection('orders').doc(id).set({ etaMinutes:m, etaEndsAt:endsAt, etaStartedAt:Date.now() },{merge:true}).then(function(){
     toast(t('saved'));
     var f=S.orders.filter(function(x){return x.id===id;})[0];
-    if(f){ f.etaMinutes=m; openOrder(id); }
+    if(f){ f.etaMinutes=m; f.etaEndsAt=endsAt; openOrder(id); }
   });
 }
 
