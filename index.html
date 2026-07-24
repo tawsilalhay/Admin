@@ -549,7 +549,8 @@ function toast(m){ var el=document.getElementById('toast'); el.textContent=m; el
 function locName(o,f){ f=f||'name'; return o[f+'_'+LANG]||o[f+'_ar']||o[f+'_en']||''; }
 
 firebase.initializeApp(CONFIG.firebase);
-db = firebase.firestore(); auth = firebase.auth(); storage = firebase.storage();
+db = firebase.firestore(); auth = firebase.auth();
+try{ storage = firebase.storage(); }catch(e){ storage = null; }
 applyLang();
 
 var STARTED = false;
@@ -1056,18 +1057,39 @@ function drawPrev(){
   document.getElementById('extraPrev').innerHTML=h;
 }
 function rmImg(kind,i){ if(kind==='main')S.prodImages.main=''; else S.prodImages.extra.splice(i,1); drawPrev(); }
+/* ضغط الصورة وتحويلها إلى Base64 (بدون Firebase Storage) */
+function compressImage(file, maxDim, quality){
+  return new Promise(function(resolve, reject){
+    if(!file.type || file.type.indexOf('image/') !== 0){ reject(new Error('ليست صورة')); return; }
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var img = new Image();
+      img.onload = function(){
+        var w = img.width, h = img.height;
+        if(w > h && w > maxDim){ h = Math.round(h * maxDim / w); w = maxDim; }
+        else if(h >= w && h > maxDim){ w = Math.round(w * maxDim / h); h = maxDim; }
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality || 0.72));
+      };
+      img.onerror = function(){ reject(new Error('تعذّر قراءة الصورة')); };
+      img.src = ev.target.result;
+    };
+    reader.onerror = function(){ reject(new Error('تعذّر قراءة الملف')); };
+    reader.readAsDataURL(file);
+  });
+}
 function uploadImg(input,kind){
   var files=Array.prototype.slice.call(input.files||[]); if(!files.length)return;
+  document.getElementById('prodErr').classList.add('hidden');
   toast(t('uploading'));
-  var jobs=files.slice(0,kind==='main'?1:3).map(function(f){
-    var ref=storage.ref('products/'+Date.now()+'_'+Math.random().toString(36).slice(2)+'_'+f.name);
-    return ref.put(f).then(function(){ return ref.getDownloadURL(); });
-  });
-  Promise.all(jobs).then(function(urls){
-    if(kind==='main')S.prodImages.main=urls[0];
-    else S.prodImages.extra=S.prodImages.extra.concat(urls).slice(0,3);
+  var jobs=files.slice(0,kind==='main'?1:3).map(function(f){ return compressImage(f, 900, 0.72); });
+  Promise.all(jobs).then(function(datas){
+    if(kind==='main')S.prodImages.main=datas[0];
+    else S.prodImages.extra=S.prodImages.extra.concat(datas).slice(0,3);
     drawPrev(); input.value='';
-  }).catch(function(e){ var el=document.getElementById('prodErr'); el.textContent=e.message; el.classList.remove('hidden'); });
+  }).catch(function(e){ var el=document.getElementById('prodErr'); el.textContent=e.message||'فشل رفع الصورة'; el.classList.remove('hidden'); input.value=''; });
 }
 function saveProd(){
   var ar=document.getElementById('pAr').value.trim();
@@ -1130,10 +1152,12 @@ function drawBannerPrev(){
   document.getElementById('bannerPrev').innerHTML=S.bannerImage?'<div class="box"><img src="'+esc(S.bannerImage)+'" style="width:100%;height:100px"><button class="x" onclick="S.bannerImage=\'\';drawBannerPrev()">&#215;</button></div>':'';
 }
 function uploadBanner(input){
-  var f=(input.files||[])[0]; if(!f)return; toast(t('uploading'));
-  var ref=storage.ref('banners/'+Date.now()+'_'+f.name);
-  ref.put(f).then(function(){ return ref.getDownloadURL(); }).then(function(u){ S.bannerImage=u; drawBannerPrev(); input.value=''; })
-    .catch(function(e){ var el=document.getElementById('bannerErr'); el.textContent=e.message; el.classList.remove('hidden'); });
+  var f=(input.files||[])[0]; if(!f)return;
+  document.getElementById('bannerErr').classList.add('hidden');
+  toast(t('uploading'));
+  // البنر أعرض، نعطيه أبعاد أكبر
+  compressImage(f, 1280, 0.75).then(function(data){ S.bannerImage=data; drawBannerPrev(); input.value=''; })
+    .catch(function(e){ var el=document.getElementById('bannerErr'); el.textContent=e.message||'فشل رفع الصورة'; el.classList.remove('hidden'); input.value=''; });
 }
 function saveBanner(){
   if(!S.bannerImage){ toast(t('reqFields')); return; }
