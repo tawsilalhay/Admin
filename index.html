@@ -81,6 +81,9 @@ th{color:var(--muted);font-weight:500;font-size:12.5px}
 .modal-card{position:relative;max-width:640px;margin:5vh auto;background:#fff;border-radius:18px;padding:22px;max-height:88vh;overflow-y:auto}
 @media(max-width:600px){.modal-card{margin:0;min-height:100%;border-radius:0}}
 .modal-card h3{margin:0 0 16px;font-size:18px}
+.modal-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.backbtn{width:40px;height:40px;border-radius:11px;background:var(--secondary-light);color:var(--primary);font-size:20px;display:grid;place-items:center;flex-shrink:0;border:none;cursor:pointer}
+.backbtn:active{transform:scale(.95)}
 
 #mapAdmin{width:100%;height:440px;border-radius:14px;border:1px solid var(--line)}
 .chatlist{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
@@ -175,12 +178,12 @@ th{color:var(--muted);font-weight:500;font-size:12.5px}
   <nav><div class="nav-in">
     <button class="on" data-tab="t-dash" onclick="tab('t-dash')" data-i="dashboard">الإحصائيات</button>
     <button data-tab="t-orders" onclick="tab('t-orders')"><span data-i="orders">الطلبات</span><span class="badge hidden" id="bOrders">0</span></button>
+    <button data-tab="t-chats" onclick="tab('t-chats')"><span data-i="chats">المحادثات</span><span class="badge hidden" id="bChats">0</span></button>
     <button data-tab="t-menu" onclick="tab('t-menu')" data-i="menuMgmt">القائمة</button>
     <button data-tab="t-banners" onclick="tab('t-banners')" data-i="banners">البنرات</button>
     <button data-tab="t-reviews" onclick="tab('t-reviews')" data-i="reviews">التقييمات</button>
     <button data-tab="t-zone" onclick="tab('t-zone')" data-i="zone">منطقة التوصيل</button>
     <button data-tab="t-settings" onclick="tab('t-settings')" data-i="settings">الإعدادات</button>
-    <button data-tab="t-chats" onclick="tab('t-chats')"><span data-i="chats">المحادثات</span><span class="badge hidden" id="bChats">0</span></button>
   </div></nav>
 </header>
 
@@ -425,7 +428,10 @@ th{color:var(--muted);font-weight:500;font-size:12.5px}
 <div class="modal" id="mChat">
   <div class="modal-bg" onclick="closeChat()"></div>
   <div class="modal-card">
-    <h3 id="chatTitle">—</h3>
+    <div class="modal-head">
+      <button class="backbtn" onclick="closeChat()">&#8594;</button>
+      <h3 id="chatTitle" style="margin:0;flex:1">—</h3>
+    </div>
     <div class="chatlang-admin" id="admChatLang">
       <span style="font-size:12px;color:var(--muted)" data-i="chatLangLbl">لغتك:</span>
       <button onclick="setAdmChatLang('ar')" data-aclang="ar">عربي</button>
@@ -501,7 +507,7 @@ var I18N = {
     st_received:"تم استلام الطلب",st_preparing:"جاري تجهيز الطلب",st_ready:"جاهز للاستلام",
     st_out:"خرج للتوصيل",st_delivered:"تم التسليم",loginErr:"بيانات الدخول غير صحيحة",
     reqFields:"املأ الحقول المطلوبة",deliveryFee:"رسوم التوصيل",sar:"ر.س",uploading:"جاري الرفع...",
-    pricingType:"نوع التسعير",fixedPrice:"سعر ثابت",bySizes:"حسب الأحجام",sizesLbl:"الأحجام (حتى 4 — الاسم عربي/إنجليزي + السعر)",addSize:"+ إضافة حجم",sizeNameAr:"اسم الحجم (عربي)",sizeNameEn:"Size (EN)",needSize:"أضف حجماً واحداً على الأقل",menuMgmt:"القائمة",cash:"الدفع عند الاستلام",cardLbl:"بطاقة",unpaid:"غير مدفوع",newOrderTitle:"طلب جديد!",acceptStart:"استلام الطلب وبدء التجهيز",chatLangLbl:"لغتك:",etaCountdown:"الوقت المتبقي",orderNotes:"ملاحظات الطلب",housePhoto:"صورة المنزل",
+    pricingType:"نوع التسعير",fixedPrice:"سعر ثابت",bySizes:"حسب الأحجام",sizesLbl:"الأحجام (حتى 4 — الاسم عربي/إنجليزي + السعر)",addSize:"+ إضافة حجم",sizeNameAr:"اسم الحجم (عربي)",sizeNameEn:"Size (EN)",needSize:"أضف حجماً واحداً على الأقل",menuMgmt:"القائمة",cash:"الدفع عند الاستلام",cardLbl:"بطاقة",unpaid:"غير مدفوع",newOrderTitle:"طلب جديد!",acceptStart:"استلام الطلب وبدء التجهيز",chatLangLbl:"لغتك:",etaCountdown:"الوقت المتبقي",orderNotes:"ملاحظات الطلب",housePhoto:"صورة المنزل",newMsg:"رسالة جديدة",
     chatClosedLbl:"أُغلقت المحادثة (للقراءة فقط)",comment:"التعليق",stars:"النجوم",date:"التاريخ",
     s_totalOrders:"إجمالي الطلبات",s_revenue:"إجمالي الإيرادات",s_completed:"الطلبات المكتملة",
     s_cancelled:"الطلبات الملغاة",s_avgValue:"متوسط قيمة الطلب",s_avgPrep:"متوسط وقت التجهيز",
@@ -527,7 +533,7 @@ var I18N = {
     st_received:"Order received",st_preparing:"Preparing",st_ready:"Ready for pickup",
     st_out:"Out for delivery",st_delivered:"Delivered",loginErr:"Invalid credentials",
     reqFields:"Fill the required fields",deliveryFee:"Delivery fee",sar:"SAR",uploading:"Uploading...",
-    pricingType:"Pricing type",fixedPrice:"Fixed price",bySizes:"By sizes",sizesLbl:"Sizes (up to 4 — name AR/EN + price)",addSize:"+ Add size",sizeNameAr:"Size (AR)",sizeNameEn:"Size (EN)",needSize:"Add at least one size",menuMgmt:"Menu",cash:"Pay on receipt",cardLbl:"Card",unpaid:"Unpaid",newOrderTitle:"New order!",acceptStart:"Accept & start preparing",chatLangLbl:"Your language:",etaCountdown:"Time left",orderNotes:"Order notes",housePhoto:"House photo",
+    pricingType:"Pricing type",fixedPrice:"Fixed price",bySizes:"By sizes",sizesLbl:"Sizes (up to 4 — name AR/EN + price)",addSize:"+ Add size",sizeNameAr:"Size (AR)",sizeNameEn:"Size (EN)",needSize:"Add at least one size",menuMgmt:"Menu",cash:"Pay on receipt",cardLbl:"Card",unpaid:"Unpaid",newOrderTitle:"New order!",acceptStart:"Accept & start preparing",chatLangLbl:"Your language:",etaCountdown:"Time left",orderNotes:"Order notes",housePhoto:"House photo",newMsg:"New message",
     chatClosedLbl:"Chat closed (read only)",comment:"Comment",stars:"Stars",date:"Date",
     s_totalOrders:"Total orders",s_revenue:"Total revenue",s_completed:"Completed",
     s_cancelled:"Cancelled",s_avgValue:"Avg order value",s_avgPrep:"Avg prep time",
@@ -541,7 +547,7 @@ var S = {
   orders:[], categories:[], products:[], banners:[],
   polygon:[], markers:[], polyShape:null, map:null,
   prodImages:{ main:'', extra:[] }, bannerImage:'',
-  chatOrder:null, unsubChat:null, seen:{}, firstLoad:true,
+  chatOrder:null, unsubChat:null, seen:{}, msgSeen:{}, firstLoad:true,
   dashRange:'today'
 };
 
@@ -640,10 +646,23 @@ function startListeners(){
     renderBanners();
   });
   db.collection('orders').orderBy('createdAt','desc').limit(500).onSnapshot(function(s){
-    var arr=[], freshId=null;
-    s.forEach(function(d){ var o=d.data(); o.id=d.id; arr.push(o); if(!S.firstLoad && !S.seen[d.id]){ freshId=d.id; } S.seen[d.id]=true; });
+    var arr=[], freshId=null, newMsg=false;
+    s.forEach(function(d){
+      var o=d.data(); o.id=d.id; arr.push(o);
+      if(!S.firstLoad && !S.seen[d.id]){ freshId=d.id; }
+      // كشف رسالة جديدة من العميل (تغيّر وقت آخر رسالة + غير مقروءة)
+      if(!S.firstLoad){
+        var prevMs = S.msgSeen[d.id] || 0;
+        var curMs = (o.lastMessageAt && o.lastMessageAt.toMillis) ? o.lastMessageAt.toMillis() : 0;
+        if(curMs > prevMs && (o.unreadAdmin||0) > 0 && S.chatOrder && S.chatOrder.id !== d.id){ newMsg=true; }
+        else if(curMs > prevMs && (o.unreadAdmin||0) > 0 && !S.chatOrder){ newMsg=true; }
+      }
+      S.msgSeen[d.id] = (o.lastMessageAt && o.lastMessageAt.toMillis) ? o.lastMessageAt.toMillis() : 0;
+      S.seen[d.id]=true;
+    });
     S.orders=arr;
     if(freshId){ triggerNewOrderAlert(freshId); }
+    if(newMsg){ admChatBeep(); toast(t('newMsg')); }
     S.firstLoad=false;
     renderOrders(); renderDash(); renderChats(); renderReviews(); refreshOrderBadge();
   });
@@ -710,9 +729,19 @@ function acceptNewOrder(){
   ALARM_ORDER = null;
   tab('t-orders');
 }
+/* سياق صوت مشترك — يُفعّل عند أول تفاعل من المستخدم (متطلب المتصفحات) */
+var AUDIO_CTX = null;
+function ensureAudio(){
+  if(!AUDIO_CTX){ try{ AUDIO_CTX = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(AUDIO_CTX && AUDIO_CTX.state === 'suspended'){ AUDIO_CTX.resume(); }
+  return AUDIO_CTX;
+}
+document.addEventListener('click', ensureAudio, { once:false });
+document.addEventListener('touchstart', ensureAudio, { once:false });
+
 function beep(){
+  var ctx = ensureAudio(); if(!ctx) return;
   try{
-    var ctx=new (window.AudioContext||window.webkitAudioContext)();
     [0,.18,.36].forEach(function(off){
       var o=ctx.createOscillator(), g=ctx.createGain();
       o.type='square'; o.frequency.value=920; o.connect(g); g.connect(ctx.destination);
@@ -862,7 +891,7 @@ function openOrder(id){
   var houseBlock = o.housePhoto ? '<label style="margin-top:14px">'+t('housePhoto')+'</label><img src="'+esc(o.housePhoto)+'" style="width:100%;max-width:280px;border-radius:12px;cursor:pointer" onclick="window.open(this.src)">' : '';
   var etaLive = (o.etaEndsAt && o.status!=='delivered') ? '<div class="eta-live" data-eta-ends="'+o.etaEndsAt+'"><span data-i="etaCountdown">الوقت المتبقي</span>: <b class="eta-num">--:--</b></div>' : '';
   document.getElementById('orderCard').innerHTML=
-    '<h3>#'+esc(o.orderNo)+'</h3>'+
+    '<div class="modal-head"><button class="backbtn" onclick="closeModal(\'mOrder\')">&#8594;</button><h3 style="margin:0;flex:1">#'+esc(o.orderNo)+'</h3></div>'+
     etaLive+
     '<div class="f2">'+
       '<div><label>'+t('customer')+'</label>'+esc(o.customerName||'—')+'</div>'+
@@ -1305,15 +1334,15 @@ function markAdmChatLang(){
   for(var i=0;i<b.length;i++) b[i].classList.toggle('on', b[i].getAttribute('data-aclang')===ADM_CHAT_LANG);
 }
 function admChatBeep(){
-  try{
-    var ctx=new (window.AudioContext||window.webkitAudioContext)();
+  var ctx = ensureAudio();
+  if(ctx){ try{
     var o=ctx.createOscillator(), g=ctx.createGain();
     o.type='sine'; o.frequency.value=760; o.connect(g); g.connect(ctx.destination);
     g.gain.setValueAtTime(.001,ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(.3,ctx.currentTime+.03);
     g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.25);
     o.start(); o.stop(ctx.currentTime+.27);
-  }catch(e){}
+  }catch(e){} }
   if(navigator.vibrate) navigator.vibrate(200);
 }
 function renderAdmChat(snap){
