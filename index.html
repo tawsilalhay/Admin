@@ -84,6 +84,8 @@ th{color:var(--muted);font-weight:500;font-size:12.5px}
 .modal-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
 .backbtn{width:40px;height:40px;border-radius:11px;background:var(--secondary-light);color:var(--primary);font-size:20px;display:grid;place-items:center;flex-shrink:0;border:none;cursor:pointer}
 .backbtn:active{transform:scale(.95)}
+.banner-crop{width:100%;height:150px;border-radius:12px;overflow:hidden;background:var(--secondary-light);border:1px solid var(--line)}
+.banner-crop img{width:100%;height:100%;object-fit:cover}
 
 #mapAdmin{width:100%;height:440px;border-radius:14px;border:1px solid var(--line)}
 .chatlist{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
@@ -507,7 +509,7 @@ var I18N = {
     st_received:"تم استلام الطلب",st_preparing:"جاري تجهيز الطلب",st_ready:"جاهز للاستلام",
     st_out:"خرج للتوصيل",st_delivered:"تم التسليم",loginErr:"بيانات الدخول غير صحيحة",
     reqFields:"املأ الحقول المطلوبة",deliveryFee:"رسوم التوصيل",sar:"ر.س",uploading:"جاري الرفع...",
-    pricingType:"نوع التسعير",fixedPrice:"سعر ثابت",bySizes:"حسب الأحجام",sizesLbl:"الأحجام (حتى 4 — الاسم عربي/إنجليزي + السعر)",addSize:"+ إضافة حجم",sizeNameAr:"اسم الحجم (عربي)",sizeNameEn:"Size (EN)",needSize:"أضف حجماً واحداً على الأقل",menuMgmt:"القائمة",cash:"الدفع عند الاستلام",cardLbl:"بطاقة",unpaid:"غير مدفوع",newOrderTitle:"طلب جديد!",acceptStart:"استلام الطلب وبدء التجهيز",chatLangLbl:"لغتك:",etaCountdown:"الوقت المتبقي",orderNotes:"ملاحظات الطلب",housePhoto:"صورة المنزل",newMsg:"رسالة جديدة",
+    pricingType:"نوع التسعير",fixedPrice:"سعر ثابت",bySizes:"حسب الأحجام",sizesLbl:"الأحجام (حتى 4 — الاسم عربي/إنجليزي + السعر)",addSize:"+ إضافة حجم",sizeNameAr:"اسم الحجم (عربي)",sizeNameEn:"Size (EN)",needSize:"أضف حجماً واحداً على الأقل",menuMgmt:"القائمة",cash:"الدفع عند الاستلام",cardLbl:"بطاقة",unpaid:"غير مدفوع",newOrderTitle:"طلب جديد!",acceptStart:"استلام الطلب وبدء التجهيز",chatLangLbl:"لغتك:",etaCountdown:"الوقت المتبقي",orderNotes:"ملاحظات الطلب",housePhoto:"صورة المنزل",newMsg:"رسالة جديدة",bannerCropHint:"اسحب الشريط لتحديد الجزء الظاهر من البنر",
     chatClosedLbl:"أُغلقت المحادثة (للقراءة فقط)",comment:"التعليق",stars:"النجوم",date:"التاريخ",
     s_totalOrders:"إجمالي الطلبات",s_revenue:"إجمالي الإيرادات",s_completed:"الطلبات المكتملة",
     s_cancelled:"الطلبات الملغاة",s_avgValue:"متوسط قيمة الطلب",s_avgPrep:"متوسط وقت التجهيز",
@@ -533,7 +535,7 @@ var I18N = {
     st_received:"Order received",st_preparing:"Preparing",st_ready:"Ready for pickup",
     st_out:"Out for delivery",st_delivered:"Delivered",loginErr:"Invalid credentials",
     reqFields:"Fill the required fields",deliveryFee:"Delivery fee",sar:"SAR",uploading:"Uploading...",
-    pricingType:"Pricing type",fixedPrice:"Fixed price",bySizes:"By sizes",sizesLbl:"Sizes (up to 4 — name AR/EN + price)",addSize:"+ Add size",sizeNameAr:"Size (AR)",sizeNameEn:"Size (EN)",needSize:"Add at least one size",menuMgmt:"Menu",cash:"Pay on receipt",cardLbl:"Card",unpaid:"Unpaid",newOrderTitle:"New order!",acceptStart:"Accept & start preparing",chatLangLbl:"Your language:",etaCountdown:"Time left",orderNotes:"Order notes",housePhoto:"House photo",newMsg:"New message",
+    pricingType:"Pricing type",fixedPrice:"Fixed price",bySizes:"By sizes",sizesLbl:"Sizes (up to 4 — name AR/EN + price)",addSize:"+ Add size",sizeNameAr:"Size (AR)",sizeNameEn:"Size (EN)",needSize:"Add at least one size",menuMgmt:"Menu",cash:"Pay on receipt",cardLbl:"Card",unpaid:"Unpaid",newOrderTitle:"New order!",acceptStart:"Accept & start preparing",chatLangLbl:"Your language:",etaCountdown:"Time left",orderNotes:"Order notes",housePhoto:"House photo",newMsg:"New message",bannerCropHint:"Drag the slider to set the visible part of the banner",
     chatClosedLbl:"Chat closed (read only)",comment:"Comment",stars:"Stars",date:"Date",
     s_totalOrders:"Total orders",s_revenue:"Total revenue",s_completed:"Completed",
     s_cancelled:"Cancelled",s_avgValue:"Avg order value",s_avgPrep:"Avg prep time",
@@ -1196,17 +1198,31 @@ function renderBanners(){
 }
 function openBannerModal(id){
   if(!id && S.banners.length>=5){ toast('5 max'); return; }
-  S.bannerImage=''; document.getElementById('bannerErr').classList.add('hidden');
+  S.bannerImage=''; S.bannerPos=50; document.getElementById('bannerErr').classList.add('hidden');
   document.getElementById('bOrder').value=(S.banners.length+1); document.getElementById('bId').value='';
   if(id){
     var b=S.banners.filter(function(x){return x.id===id;})[0];
-    if(b){ S.bannerImage=b.image||''; document.getElementById('bOrder').value=b.order||1; document.getElementById('bId').value=id; }
+    if(b){ S.bannerImage=b.image||''; S.bannerPos=(b.imagePos!=null?b.imagePos:50); document.getElementById('bOrder').value=b.order||1; document.getElementById('bId').value=id; }
   }
   drawBannerPrev(); document.getElementById('mBanner').classList.add('open');
 }
 function editBanner(id){ openBannerModal(id); }
 function drawBannerPrev(){
-  document.getElementById('bannerPrev').innerHTML=S.bannerImage?'<div class="box"><img src="'+esc(S.bannerImage)+'" style="width:100%;height:100px"><button class="x" onclick="S.bannerImage=\'\';drawBannerPrev()">&#215;</button></div>':'';
+  var box = document.getElementById('bannerPrev');
+  if(!S.bannerImage){ box.innerHTML=''; return; }
+  // إطار بنسبة البنر عند العميل، والصورة تُسحب عمودياً لتحديد الجزء الظاهر
+  box.innerHTML =
+    '<div style="width:100%;font-size:12px;color:var(--muted);margin-bottom:6px">'+t('bannerCropHint')+'</div>'+
+    '<div class="banner-crop" id="bannerCrop">'+
+      '<img id="bannerCropImg" src="'+esc(S.bannerImage)+'" style="object-position:center '+(S.bannerPos!=null?S.bannerPos:50)+'%">'+
+    '</div>'+
+    '<input type="range" min="0" max="100" value="'+(S.bannerPos!=null?S.bannerPos:50)+'" oninput="setBannerPos(this.value)" style="width:100%;margin-top:8px">'+
+    '<button class="btn ghost sm" style="margin-top:8px" onclick="S.bannerImage=\'\';S.bannerPos=50;drawBannerPrev()">'+t('del')+'</button>';
+}
+function setBannerPos(v){
+  S.bannerPos = Number(v);
+  var img = document.getElementById('bannerCropImg');
+  if(img) img.style.objectPosition = 'center '+v+'%';
 }
 function uploadBanner(input){
   var f=(input.files||[])[0]; if(!f)return;
@@ -1218,7 +1234,7 @@ function uploadBanner(input){
 }
 function saveBanner(){
   if(!S.bannerImage){ toast(t('reqFields')); return; }
-  var data={ image:S.bannerImage, order:Number(document.getElementById('bOrder').value||1) };
+  var data={ image:S.bannerImage, imagePos:(S.bannerPos!=null?S.bannerPos:50), order:Number(document.getElementById('bOrder').value||1) };
   var id=document.getElementById('bId').value;
   var p=id?db.collection('banners').doc(id).set(data,{merge:true}):db.collection('banners').add(Object.assign({hidden:false},data));
   p.then(function(){ toast(t('saved')); closeModal('mBanner'); });
